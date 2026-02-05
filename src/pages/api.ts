@@ -17,7 +17,7 @@ export interface ChatResponse {
 
 export const chat = async (request: ChatRequest) => {
   const response = await apiClient.post<ChatResponse, ChatRequest>(
-    "/chat",
+    "/chat/",
     request,
   );
   return response;

@@ -34,13 +34,11 @@ export class ApiClient {
   }
 
   public get<T>(apiPath: string): Promise<T> {
-    const url = `${this.baseUrl}${apiPath}`;
-    return this.axios.get(url);
+    return this.axios.get(apiPath);
   }
 
   public post<T, D>(apiPath: string, data: D): Promise<T> {
-    const url = `${this.baseUrl}${apiPath}`;
-    return this.axios.post(url, data);
+    return this.axios.post(apiPath, data);
   }
 }
 
