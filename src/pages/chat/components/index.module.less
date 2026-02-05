@@ -1,0 +1,170 @@
+// MessageItem 组件样式
+
+// AI 消息 Markdown 内容样式
+.markdownContent {
+  // 段落
+  p {
+    margin: 0.5em 0;
+    line-height: 1.6;
+  }
+
+  // 标题
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h1 {
+    font-size: 1.5em;
+  }
+  h2 {
+    font-size: 1.3em;
+  }
+  h3 {
+    font-size: 1.15em;
+  }
+
+  // 列表
+  ul,
+  ol {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+  }
+
+  li {
+    margin: 0.25em 0;
+    line-height: 1.6;
+  }
+
+  // 行内代码
+  code:not([class*="language-"]) {
+    background-color: rgba(127, 127, 127, 0.15);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: "Fira Code", "Consolas", monospace;
+  }
+
+  // 代码块容器
+  pre {
+    margin: 1em 0;
+    border-radius: 8px;
+    overflow: hidden;
+
+    > div {
+      margin: 0 !important;
+      border-radius: 8px !important;
+    }
+  }
+
+  // 引用块
+  blockquote {
+    border-left: 3px solid;
+    border-color: rgba(127, 127, 127, 0.4);
+    padding-left: 1em;
+    margin: 0.5em 0;
+    color: inherit;
+    opacity: 0.8;
+  }
+
+  // 表格
+  table {
+    border-collapse: collapse;
+    margin: 1em 0;
+    width: 100%;
+    overflow-x: auto;
+    display: block;
+  }
+
+  th,
+  td {
+    border: 1px solid rgba(127, 127, 127, 0.3);
+    padding: 0.5em 1em;
+    text-align: left;
+  }
+
+  th {
+    background-color: rgba(127, 127, 127, 0.1);
+    font-weight: 600;
+  }
+
+  // 水平线
+  hr {
+    border: none;
+    border-top: 1px solid rgba(127, 127, 127, 0.3);
+    margin: 1.5em 0;
+  }
+
+  // 链接
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+
+  // 图片
+  img {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  // 删除线
+  del {
+    opacity: 0.6;
+  }
+}
+
+// Human 消息气泡容器（用于定位悬浮按钮）
+.humanBubbleWrapper {
+  position: relative;
+  max-width: 70%;
+
+  &:hover {
+    .humanActions {
+      opacity: 1;
+    }
+  }
+}
+
+// Human 消息悬浮操作区域 - 定位在气泡左侧
+.humanActions {
+  position: absolute;
+  left: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+// Human 消息气泡
+.humanBubble {
+  border-radius: 20px;
+  padding: 12px 20px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// AI 消息工具栏
+.aiToolbar {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
+}
