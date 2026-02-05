@@ -1,9 +1,9 @@
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { router } from "./router";
+
 function App() {
-  return (
-    <>
-      <h1> SuoFish-gitLLM </h1>
-    </>
-  );
+  const bowserRouter = createBrowserRouter(router);
+  return <RouterProvider router={bowserRouter} />;
 }
 
 export default App;
