@@ -43,3 +43,5 @@ export class ApiClient {
     return this.axios.post(url, data);
   }
 }
+
+export const apiClient = new ApiClient();

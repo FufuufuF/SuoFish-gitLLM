@@ -1,6 +1,14 @@
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { ChatInput } from "./components";
+import { useMessage } from "./hooks/use-message";
 
 export function ChatPage() {
+  const { sendMessage } = useMessage();
+  const handleSend = async (content: string) => {
+    const { ai_message } = await sendMessage(content);
+    console.log(ai_message);
+  };
+
   return (
     <Box
       sx={{
@@ -10,14 +18,14 @@ export function ChatPage() {
         alignItems: "center",
         justifyContent: "center",
         p: 4,
+        width: "100%",
+        height: "100%",
       }}
     >
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 600 }}>
-        👋 你好
-      </Typography>
-      <Typography variant="h6" color="text.secondary">
-        需要我为你做些什么？
-      </Typography>
+      <Box sx={{ width: "100%" }}></Box>
+      <Box sx={{ width: "80%" }}>
+        <ChatInput onSend={handleSend} />
+      </Box>
     </Box>
   );
 }
