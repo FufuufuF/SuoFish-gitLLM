@@ -53,7 +53,7 @@ export function useMessage() {
     addMessage({
       id: tempId, // 临时 ID
       tempId: tempId,
-      role: 0,
+      role: 1,
       content,
       status: "sending",
       timestamp: new Date(),

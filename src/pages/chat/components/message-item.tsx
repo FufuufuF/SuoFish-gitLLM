@@ -30,7 +30,7 @@ export function MessageItem({
   onRegenerate,
 }: MessageItemProps) {
   const [copied, setCopied] = useState(false);
-  const isAI = message.role === 1;
+  const isAI = message.role === 2;
 
   const handleCopy = async () => {
     try {

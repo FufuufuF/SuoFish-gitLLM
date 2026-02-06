@@ -1,10 +1,19 @@
+import { useEffect } from "react";
 import { Box } from "@mui/material";
 import { ChatInput, MessageList } from "./components";
 import { useMessage } from "./hooks/use-message";
-import type { Message } from "./types";
 
 export function ChatPage() {
-  const { sendMessage, messageList } = useMessage();
+  const { sendMessage, messageList, fetchMessages } = useMessage();
+
+  // 组件挂载时获取历史消息
+  // TODO: 替换为实际的 chatSessionId 和 threadId
+  useEffect(() => {
+    const chatSessionId = 1; // MOCK
+    const threadId = 1; // MOCK
+    fetchMessages(chatSessionId, threadId);
+  }, []);
+
   const handleSend = async (content: string) => {
     await sendMessage(content);
   };

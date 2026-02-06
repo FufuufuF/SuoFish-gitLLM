@@ -1,4 +1,4 @@
-export type MessageRole = 0 | 1;
+export type MessageRole = 1 | 2;
 
 export type MessageStatus = "sending" | "success" | "error" | "streaming";
 
