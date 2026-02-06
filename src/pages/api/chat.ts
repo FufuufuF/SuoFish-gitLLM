@@ -1,16 +1,11 @@
 import { apiClient } from "@/api";
 import type { MessageRole, Message } from "@/types";
+import type { ChatMessage } from "./message";
 
 export interface ChatRequest {
   chat_session_id: number;
   thread_id: number;
   content: string;
-}
-
-export interface ChatMessage {
-  id: number;
-  content: string;
-  create_at: Date;
 }
 
 export interface ChatResponse {
