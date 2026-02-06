@@ -122,6 +122,7 @@ export function MessageItem({
         display: "flex",
         justifyContent: "flex-end",
         px: 2,
+        fontSize: "1.4rem",
       }}
     >
       {/* 气泡容器（用于定位悬浮按钮） */}

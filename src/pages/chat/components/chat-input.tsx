@@ -84,7 +84,7 @@ export function ChatInput({
             maxRows={8}
             sx={{
               width: "100%",
-              fontSize: "1.5rem",
+              fontSize: "1.4rem",
               lineHeight: 1.6,
               minHeight: 24,
             }}
