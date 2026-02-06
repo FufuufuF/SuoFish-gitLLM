@@ -8,7 +8,7 @@ import {
   ThumbDown,
 } from "@mui/icons-material";
 import { MarkdownContent } from "./markdown-content";
-import type { Message } from "../types";
+import type { Message } from "@/types";
 import styles from "./index.module.less";
 
 interface MessageItemProps {
