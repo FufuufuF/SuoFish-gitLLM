@@ -1,7 +1,22 @@
 import { chat as chatApi, getMessage as getMessageApi } from "@/pages/api";
-import type { MessageRole } from "@/types";
+import type { ChatMessage } from "@/pages/api/message";
+import type { Message, MessageRole } from "@/types";
 
 import { useMessageStore } from "@/stores/message-store";
+
+/**
+ * 将 API 层的 ChatMessage 转换为业务层的 Message
+ */
+const mapChatMessageToMessage = (
+  chatMsg: ChatMessage,
+  role: MessageRole,
+): Message => ({
+  id: chatMsg.id,
+  role,
+  content: chatMsg.content,
+  status: "success",
+  timestamp: new Date(chatMsg.create_at),
+});
 
 export function useMessage() {
   const {
@@ -67,24 +82,16 @@ export function useMessage() {
         content,
       });
 
-      // 3. 成功后：
-      // a) 将用户消息的 tempId 替换为真实 ID，并标记成功
-      // 注意：response[0] 是 human_message, response[1] 是 ai_message
-      const humanMsg = response[0];
-      const aiMsg = response[1];
+      // 3. 成功后：在 hook 层进行数据转换
+      const humanMsg = mapChatMessageToMessage(response.human_message, 1);
+      const aiMsg = mapChatMessageToMessage(response.ai_message, 2);
 
-      if (humanMsg) {
-        updateMessageId(tempId, Number(humanMsg.id));
-        updateMessageStatus(Number(humanMsg.id), "success");
-      }
+      // a) 将用户消息的 tempId 替换为真实 ID，并标记成功
+      updateMessageId(tempId, Number(humanMsg.id));
+      updateMessageStatus(Number(humanMsg.id), "success");
 
       // b) 添加 AI 回复
-      if (aiMsg) {
-        addMessage({
-          ...aiMsg,
-          status: "success",
-        });
-      }
+      addMessage(aiMsg);
     } catch (error) {
       console.error("Failed to send message:", error);
       // 4. 失败：标记消息为错误状态

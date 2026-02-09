@@ -1,5 +1,4 @@
 import { apiClient } from "@/api";
-import type { MessageRole, Message } from "@/types";
 import type { ChatMessage } from "./message";
 
 export interface ChatRequest {
@@ -15,23 +14,10 @@ export interface ChatResponse {
   ai_message: ChatMessage;
 }
 
-const mapChatMessageToMessage = (
-  chatMsg: ChatMessage,
-  role: MessageRole,
-): Message => ({
-  id: chatMsg.id,
-  role,
-  content: chatMsg.content,
-  timestamp: chatMsg.create_at,
-});
-
-export const chat = async (request: ChatRequest): Promise<Message[]> => {
-  const response = await apiClient.post<ChatResponse, ChatRequest>(
-    "/chat/",
-    request,
-  );
-  return [
-    mapChatMessageToMessage(response.human_message, 1),
-    mapChatMessageToMessage(response.ai_message, 2),
-  ];
+/**
+ * 发送聊天消息
+ * 注意：返回原始 API 响应，数据转换由 hook 层完成
+ */
+export const chat = async (request: ChatRequest): Promise<ChatResponse> => {
+  return apiClient.post<ChatResponse, ChatRequest>("/chat/", request);
 };
