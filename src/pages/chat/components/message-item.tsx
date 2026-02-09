@@ -53,6 +53,7 @@ export function MessageItem({
           gap: 1.5,
           mb: 3,
           px: 2,
+          fontSize: "1.4rem",
         }}
       >
         {/* AI 头像 */}
