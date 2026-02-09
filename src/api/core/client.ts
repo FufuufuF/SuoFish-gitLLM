@@ -33,8 +33,8 @@ export class ApiClient {
     );
   }
 
-  public get<T>(apiPath: string): Promise<T> {
-    return this.axios.get(apiPath);
+  public get<T>(apiPath: string, params?: any): Promise<T> {
+    return this.axios.get(apiPath, { params });
   }
 
   public post<T, D>(apiPath: string, data: D): Promise<T> {
