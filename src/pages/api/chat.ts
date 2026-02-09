@@ -31,7 +31,7 @@ export const chat = async (request: ChatRequest): Promise<Message[]> => {
     request,
   );
   return [
-    mapChatMessageToMessage(response.human_message, 0),
-    mapChatMessageToMessage(response.ai_message, 1),
+    mapChatMessageToMessage(response.human_message, 1),
+    mapChatMessageToMessage(response.ai_message, 2),
   ];
 };
