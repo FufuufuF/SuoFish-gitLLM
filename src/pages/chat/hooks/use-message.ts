@@ -28,8 +28,8 @@ export function useMessage() {
   } = useMessageStore();
 
   const {
-    activeSessionId,
     isNewSessionMode,
+    activeSession,
     createSession,
     confirmSessionCreation,
     markSessionError,
@@ -40,15 +40,13 @@ export function useMessage() {
    * 由组件在 useEffect 中自行调用，控制触发时机
    */
   const fetchMessages = async (
-    chatSessionId: number,
-    threadId: number,
     page: number = 1,
     pageSize: number = 50,
   ) => {
     try {
       const response = await getMessageApi({
-        chat_session_id: chatSessionId,
-        thread_id: threadId,
+        chat_session_id: activeSession!.id,
+        thread_id: activeSession!.activeThreadId,
         page,
         page_size: pageSize,
       });
@@ -73,13 +71,11 @@ export function useMessage() {
     const tempMsgId = crypto.randomUUID();
 
     // 2. 判断是否是新会话的第一条消息
-    let currentSessionId = activeSessionId;
     let tempSessionId: string | null = null;
 
     if (isNewSessionMode) {
       // 新会话模式：此时才创建 session 并添加到列表
       tempSessionId = createSession();
-      currentSessionId = tempSessionId;
     }
 
     // 3. 乐观更新：立即显示用户消息

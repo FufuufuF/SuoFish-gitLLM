@@ -1,7 +1,5 @@
-import { useCallback, useState } from "react";
 import { Box } from "@mui/material";
 import { ChatSessionList } from "@/feature/chat-session-list";
-import type { LoadMoreResult } from "@/components/layout";
 import type { ChatSession } from "@/types";
 
 // ===== Mock 数据（待接入真实 Hook 后移除） =====
@@ -47,32 +45,6 @@ const MOCK_SESSIONS: ChatSession[] = [
 // ===== 组件实现 =====
 
 export function AppSidebar() {
-  const [activeSessionId, setActiveSessionId] = useState<
-    string | number | null
-  >(1);
-
-  const handleFetchMore = useCallback(
-    async (): Promise<LoadMoreResult> => ({
-      hasMore: false,
-    }),
-    [],
-  );
-
-  const handleSessionClick = useCallback((id: string | number) => {
-    setActiveSessionId(id);
-  }, []);
-
-  const handleCreateSession = useCallback(() => {
-    console.log("TODO: create new session");
-  }, []);
-
-  const handleSessionMenuClick = useCallback(
-    (id: string | number, anchor: HTMLElement) => {
-      console.log("TODO: open menu for session", id);
-    },
-    [],
-  );
-
   return (
     <Box
       sx={{
@@ -84,15 +56,7 @@ export function AppSidebar() {
         bgcolor: "background.default",
       }}
     >
-      <ChatSessionList
-        sessions={MOCK_SESSIONS}
-        activeSessionId={activeSessionId}
-        isTitleGenerating={true}
-        fetchMore={handleFetchMore}
-        onSessionClick={handleSessionClick}
-        onCreateSession={handleCreateSession}
-        onSessionMenuClick={handleSessionMenuClick}
-      />
+      <ChatSessionList />
     </Box>
   );
 }

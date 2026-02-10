@@ -16,7 +16,7 @@ export interface ChatSession {
   title?: string;
   goal?: string;
   status: number;
-  active_status: number;
+  active_thread_id: number;
   create_at: Date;
   update_at: Date;
 }
@@ -34,7 +34,7 @@ export interface GetChatSessionListResponse {
  * 注意：返回原始 API 响应，数据转换由 Hook 层完成
  */
 export async function getChatSessionList(request: GetChatSessionListRequest) {
-  return apiClient.get<GetChatSessionListResponse>("/api/v1/chat_sessions/", {
+  return apiClient.get<GetChatSessionListResponse>("/chat_sessions/", {
     params: request,
   });
 }

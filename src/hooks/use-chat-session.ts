@@ -25,6 +25,7 @@ export function useChatSession() {
   const mapApiSessionToBusinessSession = useCallback(
     (item: ApiChatSession): ChatSession => ({
       id: item.id,
+      activeThreadId: item.active_thread_id,
       title: item.title,
       goal: item.goal,
       status: "active" as const,
@@ -65,8 +66,10 @@ export function useChatSession() {
     const now = new Date();
 
     const newSession: ChatSession = {
+      id: -1,
       tempId,
       title: undefined, // 标题由 AI 生成，初始为空显示 loading
+      activeThreadId: -1,
       status: "creating",
       createdAt: now,
       updatedAt: now,
