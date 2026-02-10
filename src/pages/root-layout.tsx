@@ -13,7 +13,7 @@ export function RootLayout() {
       {/* 左侧：Sidebar（业务组件） */}
       <Box
         sx={{
-          width: sidebarCollapsed ? 0 : 280,
+          width: sidebarCollapsed ? 0 : 480,
           flexShrink: 0,
           transition: "width 0.2s",
           overflow: "hidden",
