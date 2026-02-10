@@ -1,7 +1,7 @@
 import { chat as chatApi, getMessage as getMessageApi } from "@/pages/api";
 import type { ChatMessage } from "@/pages/api/message";
 import type { Message, MessageRole } from "@/types";
-
+import { useChatSession } from "@/hooks/use-chat-session";
 import { useMessageStore } from "@/stores/message-store";
 
 /**
@@ -26,6 +26,14 @@ export function useMessage() {
     updateMessageStatus,
     updateMessageId,
   } = useMessageStore();
+
+  const {
+    activeSessionId,
+    isNewSessionMode,
+    createSession,
+    confirmSessionCreation,
+    markSessionError,
+  } = useChatSession();
 
   /**
    * 获取历史消息的回调函数
@@ -61,13 +69,23 @@ export function useMessage() {
   };
 
   const sendMessage = async (content: string) => {
-    // 1. 生成临时 ID (兼容没有 uuid 库的情况)
-    const tempId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+    // 1. 生成临时消息 ID
+    const tempMsgId = crypto.randomUUID();
 
-    // 2. 乐观更新：立即显示用户消息
+    // 2. 判断是否是新会话的第一条消息
+    let currentSessionId = activeSessionId;
+    let tempSessionId: string | null = null;
+
+    if (isNewSessionMode) {
+      // 新会话模式：此时才创建 session 并添加到列表
+      tempSessionId = createSession();
+      currentSessionId = tempSessionId;
+    }
+
+    // 3. 乐观更新：立即显示用户消息
     addMessage({
-      id: tempId, // 临时 ID
-      tempId: tempId,
+      id: tempMsgId,
+      tempId: tempMsgId,
       role: 1,
       content,
       status: "sending",
@@ -75,27 +93,42 @@ export function useMessage() {
     });
 
     try {
-      // TODO: 添加实际需要的所有请求参数
+      // 4. 调用 chat API
+      // 如果是新会话 假定chat_session_id为-1，让后端创建
       const response = await chatApi({
-        chat_session_id: 1, // MOCK
-        thread_id: 1, // MOCK
+        chat_session_id: 1, // TODO: 根据实际情况处理 chat_session_id
+        thread_id: 1, // TODO: 根据实际情况处理 thread_id
         content,
       });
 
-      // 3. 成功后：在 hook 层进行数据转换
+      // 5. 如果是新会话，更新 session store
+      if (tempSessionId) {
+        confirmSessionCreation(
+          tempSessionId,
+          response.chat_session_id,
+          // response.session_title // 如果后端返回了标题
+        );
+      }
+
+      // 6. 在 hook 层进行数据转换
       const humanMsg = mapChatMessageToMessage(response.human_message, 1);
       const aiMsg = mapChatMessageToMessage(response.ai_message, 2);
 
-      // a) 将用户消息的 tempId 替换为真实 ID，并标记成功
-      updateMessageId(tempId, Number(humanMsg.id));
+      // 7. 将用户消息的 tempId 替换为真实 ID，并标记成功
+      updateMessageId(tempMsgId, Number(humanMsg.id));
       updateMessageStatus(Number(humanMsg.id), "success");
 
-      // b) 添加 AI 回复
+      // 8. 添加 AI 回复
       addMessage(aiMsg);
     } catch (error) {
       console.error("Failed to send message:", error);
-      // 4. 失败：标记消息为错误状态
-      updateMessageStatus(tempId, "error");
+      // 失败：标记消息为错误状态
+      updateMessageStatus(tempMsgId, "error");
+
+      // 如果是新会话，同时标记 session 为错误状态
+      if (tempSessionId) {
+        markSessionError(tempSessionId);
+      }
     }
   };
 
