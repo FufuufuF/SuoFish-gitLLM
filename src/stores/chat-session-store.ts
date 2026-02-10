@@ -31,6 +31,9 @@ export interface ChatSessionStore {
 
   /** 设置标题生成状态 */
   setTitleGenerating: (generating: boolean) => void;
+
+  /** 更新会话的 activeThreadId */
+  updateActiveThreadId: (id: string | number, threadId: number) => void;
 }
 
 export const useChatSessionStore = create<ChatSessionStore>((set) => ({
@@ -78,4 +81,13 @@ export const useChatSessionStore = create<ChatSessionStore>((set) => ({
     })),
 
   setTitleGenerating: (generating) => set({ isTitleGenerating: generating }),
+
+  updateActiveThreadId: (id, threadId) =>
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === id || s.tempId === id
+          ? { ...s, activeThreadId: threadId }
+          : s,
+      ),
+    })),
 }));

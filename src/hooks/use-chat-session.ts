@@ -19,6 +19,7 @@ export function useChatSession() {
     setActiveSessionId,
     removeSession,
     setTitleGenerating,
+    updateActiveThreadId,
   } = useChatSessionStore();
 
   // ===== 数据转换函数（供分页组件使用） =====
@@ -95,11 +96,12 @@ export function useChatSession() {
     (s) => s.id === activeSessionId || s.tempId === activeSessionId,
   );
 
-  // ===== 确认会话创建成功（由 message hook 调用） =====
+  // ===== 确认会话创建成功（由 orchestrator 调用） =====
   const confirmSessionCreation = useCallback(
-    (tempId: string, realId: number, title?: string) => {
+    (tempId: string, realId: number, threadId: number, title?: string) => {
       replaceSessionId(tempId, realId);
       updateSessionStatus(realId, "active");
+      updateActiveThreadId(realId, threadId);
       if (title) {
         updateSessionTitle(realId, title);
       }
@@ -108,6 +110,7 @@ export function useChatSession() {
     [
       replaceSessionId,
       updateSessionStatus,
+      updateActiveThreadId,
       updateSessionTitle,
       setTitleGenerating,
     ],

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { InfiniteScrollList } from "@/components/layout";
 import type { ChatSession } from "@/types";
 import { ChatSessionItem } from "./chat-session-item";
@@ -9,6 +10,7 @@ import { useChatSession } from "@/hooks";
 // ===== 组件实现 =====
 
 export function ChatSessionList() {
+  const navigate = useNavigate();
   const {
     // 状态
     sessions,
@@ -17,13 +19,24 @@ export function ChatSessionList() {
 
     // 方法
     fetchSessionsForPagination, // 供 InfiniteScrollList 使用
-    startNewSession, // 新增：点击「创建新会话」时调用
-    switchSession,
+    startNewSession, // 清空 activeSessionId
   } = useChatSession();
+
+  /** 切换到已有会话（路由导航） */
+  const handleSwitchSession = (sessionId: string | number) => {
+    navigate(`/chat/${sessionId}`);
+  };
+
+  /** 创建新会话（路由导航 + 清空激活状态） */
+  const handleCreateSession = () => {
+    startNewSession(); // setActiveSessionId(null)
+    navigate("/chat");
+  };
+
   return (
     <>
       {/* 列表头部 */}
-      <ChatSessionListHeader onCreateSession={startNewSession} />
+      <ChatSessionListHeader onCreateSession={handleCreateSession} />
 
       {/* 无限滚动列表 */}
       <InfiniteScrollList<ChatSession>
@@ -46,7 +59,7 @@ export function ChatSessionList() {
               session={session}
               isActive={isActive}
               isTitleGenerating={showTitleGenerating}
-              onClick={switchSession}
+              onClick={handleSwitchSession}
             />
           );
         }}

@@ -1,19 +1,65 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Box } from "@mui/material";
 import { ChatInput, MessageList } from "./components";
 import { useMessage } from "./hooks/use-message";
+import { useChatOrchestrator } from "./hooks/use-chat-orchestrator";
+import { useChatSessionStore } from "@/stores/chat-session-store";
 
 export function ChatPage() {
-  const { sendMessage, messageList, fetchMessages } = useMessage();
+  const { sessionId: urlSessionId } = useParams<{ sessionId?: string }>();
+  const { sendFirstMessage } = useChatOrchestrator();
 
-  // 组件挂载时获取历史消息
-  // TODO: 替换为实际的 chatSessionId 和 threadId
+  // Store 状态
+  const activeSessionId = useChatSessionStore((s) => s.activeSessionId);
+  const sessions = useChatSessionStore((s) => s.sessions);
+  const setActiveSessionId = useChatSessionStore((s) => s.setActiveSessionId);
+
+  // URL sessionId 优先（始终为数字 ID），回退到 store 的 activeSessionId（新会话创建期间为 tempId）
+  const parsedUrlSessionId = urlSessionId ? Number(urlSessionId) : null;
+  const isValidUrlSession =
+    parsedUrlSessionId !== null && Number.isFinite(parsedUrlSessionId);
+
+  const sessionKey = isValidUrlSession ? parsedUrlSessionId : activeSessionId;
+  const isNewSessionMode = !sessionKey;
+
+  // 查找当前会话对象（获取 activeThreadId）
+  const activeSession = sessionKey
+    ? sessions.find(
+        (s) => s.id === sessionKey || s.tempId === sessionKey,
+      )
+    : undefined;
+  const threadId = activeSession?.activeThreadId;
+
+  // 纯消息 Hook — 参数驱动
+  const { messages, sendMessage, fetchMessages } = useMessage(
+    sessionKey,
+    threadId,
+  );
+
+  // 同步 URL sessionId → store（用于侧边栏高亮）
+  // 仅在 URL 有有效 sessionId 时同步，新会话模式由 sidebar 的 startNewSession 处理
+  useLayoutEffect(() => {
+    if (isValidUrlSession) {
+      setActiveSessionId(parsedUrlSessionId);
+    }
+  }, [isValidUrlSession, parsedUrlSessionId, setActiveSessionId]);
+
+  // 切换到已有会话时拉取历史消息
   useEffect(() => {
-    fetchMessages();
-  }, []);
+    if (isValidUrlSession && threadId) {
+      fetchMessages();
+    }
+  }, [isValidUrlSession, threadId, fetchMessages]);
 
   const handleSend = async (content: string) => {
-    await sendMessage(content);
+    if (isNewSessionMode) {
+      // 新会话首条消息 — 由 orchestrator 编排 session 创建 + 消息发送 + 路由跳转
+      await sendFirstMessage(content);
+    } else {
+      // 已有会话 — 直接发送消息
+      await sendMessage(content);
+    }
   };
 
   return (
@@ -30,7 +76,7 @@ export function ChatPage() {
       }}
     >
       <Box sx={{ width: "100%" }}>
-        <MessageList messages={messageList} />
+        <MessageList messages={messages} />
       </Box>
       <Box sx={{ width: "80%" }}>
         <ChatInput onSend={handleSend} />
