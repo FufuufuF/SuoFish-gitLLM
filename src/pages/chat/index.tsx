@@ -11,6 +11,7 @@ export function ChatPage() {
   const { sendFirstMessage } = useChatOrchestrator();
 
   // Store 状态
+  // TODO: 组件直接消费Store中的数据是否合适? 是否需要通过 Hook 进行封装?
   const activeSessionId = useChatSessionStore((s) => s.activeSessionId);
   const sessions = useChatSessionStore((s) => s.sessions);
   const setActiveSessionId = useChatSessionStore((s) => s.setActiveSessionId);

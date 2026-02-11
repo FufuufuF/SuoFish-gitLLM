@@ -68,7 +68,7 @@ export function useChatOrchestrator() {
         tempSessionId,
         response.chat_session_id,
         response.thread_id,
-        // response.session_title // 如果后端返回了标题
+        // response.session_title // TODO: 如果后端返回了标题
       );
 
       // 7. 路由跳转到真实会话 URL（replace 避免 history 污染）

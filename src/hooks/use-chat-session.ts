@@ -85,7 +85,7 @@ export function useChatSession() {
 
   // ===== 切换会话 =====
   const switchSession = useCallback(
-    (sessionId: string | number) => {
+    (sessionId: number) => {
       setActiveSessionId(sessionId);
     },
     [setActiveSessionId],
