@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import { Box, Alert, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { useChatSessionStore } from "@/stores/chat-session-store";
-import { useThreadTree } from "./hooks";
-import { ThreadTreeNode } from "./components/thread-tree-node";
-import { ThreadTreeSkeleton } from "./components/thread-tree-skeleton";
+import { useThreadTree } from "../hooks";
+import { ThreadTreeNode } from "./thread-tree-node";
+import { ThreadTreeSkeleton } from "./thread-tree-skeleton";
 
 // ===== 类型定义 =====
 

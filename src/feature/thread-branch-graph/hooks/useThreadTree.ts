@@ -17,6 +17,9 @@ const mapThreadInToThread = (thread: ThreadIn): Thread => ({
   createAt: new Date(thread.create_at),
 });
 
+// ─── 稳定空数组（避免 selector 内 ?? [] 每次创建新引用导致无限重渲染）──────
+const EMPTY_THREADS: Thread[] = [];
+
 // ─── Hook 接口 ──────────────────────────────────────────────────────────────
 interface UseThreadTreeReturn {
   /** 已建好的树，null 表示尚无数据 */
@@ -28,9 +31,11 @@ interface UseThreadTreeReturn {
 // ─── Hook 实现 ──────────────────────────────────────────────────────────────
 export function useThreadTree(sessionId: number): UseThreadTreeReturn {
   // 1. 从 Store 读取扁平列表（响应式订阅）
-  const threads = useThreadStore(
-    (state) => state.threadsByChatSessionId[sessionId] ?? [],
-  );
+  // selector 只返回原始值（undefined 时不在 selector 内新建数组），
+  // ?? 操作符在外部引用稳定常量，保证 referential equality
+  const threads =
+    useThreadStore((state) => state.threadsByChatSessionId[sessionId]) ??
+    EMPTY_THREADS;
   const setThreads = useThreadStore.getState().setThreads;
 
   const [isLoading, setIsLoading] = useState(false);
