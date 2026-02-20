@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import { MessageItem } from "./message-item";
-import type { Message } from "../types";
+import type { Message } from "@/types";
 
 interface MessageListProps {
   messages: Message[];

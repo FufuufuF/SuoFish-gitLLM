@@ -85,9 +85,7 @@ export const useChatSessionStore = create<ChatSessionStore>((set) => ({
   updateActiveThreadId: (id, threadId) =>
     set((state) => ({
       sessions: state.sessions.map((s) =>
-        s.id === id || s.tempId === id
-          ? { ...s, activeThreadId: threadId }
-          : s,
+        s.id === id || s.tempId === id ? { ...s, activeThreadId: threadId } : s,
       ),
     })),
 }));

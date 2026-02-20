@@ -2,87 +2,98 @@ import type { Message, MessageStatus } from "@/types";
 import { create } from "zustand";
 
 export interface MessageStore {
-  /** 按 sessionKey 索引的消息列表 */
-  messagesBySession: Record<string | number, Message[]>;
+  /** 按 threadId 索引的消息列表 */
+  messagesByThread: Record<string | number, Message[]>;
 
-  /** 获取指定 session 的消息列表 */
-  getMessages: (sessionKey: string | number) => Message[];
+  /** 获取指定 thread 的消息列表 */
+  getMessages: (threadId: string | number) => Message[];
 
-  /** 添加消息到指定 session */
-  addMessage: (sessionKey: string | number, message: Message) => void;
+  /** 追加单条消息到指定 thread 尾部（用于发送/接收消息） */
+  addMessage: (threadId: string | number, message: Message) => void;
 
-  /** 设置指定 session 的完整消息列表（用于拉取历史消息） */
-  setMessages: (sessionKey: string | number, messages: Message[]) => void;
+  /** 向头部批量插入消息（用于向上加载历史消息） */
+  prependMessages: (threadId: string | number, messages: Message[]) => void;
 
-  /** 更新指定 session 中消息的状态 */
+  /** 覆盖写入指定 thread 的完整消息列表（用于初始加载） */
+  setMessages: (threadId: string | number, messages: Message[]) => void;
+
+  /** 更新指定 thread 中某条消息的发送状态 */
   updateMessageStatus: (
-    sessionKey: string | number,
+    threadId: string | number,
     id: number | string,
     status: MessageStatus,
   ) => void;
 
   /** 用真实 ID 替换临时消息 ID */
   updateMessageId: (
-    sessionKey: string | number,
+    threadId: string | number,
     tempId: string,
     realId: number,
   ) => void;
 
-  /** 将消息从旧 sessionKey 迁移到新 sessionKey */
-  migrateSessionMessages: (
-    oldKey: string | number,
-    newKey: string | number,
-  ) => void;
+  /**
+   * 将消息从临时 threadId（UUID）迁移到真实 threadId（number）
+   * 用于新会话第一条消息发送成功后的乐观更新确认
+   */
+  migrateThreadMessages: (tempThreadId: string, realThreadId: number) => void;
 
-  /** 清除指定 session 的消息 */
-  clearSessionMessages: (sessionKey: string | number) => void;
+  /** 清除指定 thread 的消息缓存 */
+  clearThreadMessages: (threadId: string | number) => void;
 }
 
 export const useMessageStore = create<MessageStore>((set, get) => ({
-  messagesBySession: {},
+  messagesByThread: {},
 
-  getMessages: (sessionKey) => {
-    return get().messagesBySession[sessionKey] ?? [];
+  getMessages: (threadId) => {
+    return get().messagesByThread[threadId] ?? [];
   },
 
-  addMessage: (sessionKey, message) =>
+  addMessage: (threadId, message) =>
     set((state) => ({
-      messagesBySession: {
-        ...state.messagesBySession,
-        [sessionKey]: [...(state.messagesBySession[sessionKey] ?? []), message],
+      messagesByThread: {
+        ...state.messagesByThread,
+        [threadId]: [...(state.messagesByThread[threadId] ?? []), message],
       },
     })),
 
-  setMessages: (sessionKey, messages) =>
+  prependMessages: (threadId, messages) =>
     set((state) => ({
-      messagesBySession: {
-        ...state.messagesBySession,
-        [sessionKey]: messages,
+      messagesByThread: {
+        ...state.messagesByThread,
+        [threadId]: [...messages, ...(state.messagesByThread[threadId] ?? [])],
       },
     })),
 
-  updateMessageStatus: (sessionKey, id, status) =>
+  setMessages: (threadId, messages) =>
+    set((state) => ({
+      messagesByThread: {
+        ...state.messagesByThread,
+        [threadId]: messages,
+      },
+    })),
+
+  updateMessageStatus: (threadId, id, status) =>
     set((state) => {
-      const messages = state.messagesBySession[sessionKey];
+      const messages = state.messagesByThread[threadId];
       if (!messages) return state;
       return {
-        messagesBySession: {
-          ...state.messagesBySession,
-          [sessionKey]: messages.map((msg) =>
+        messagesByThread: {
+          ...state.messagesByThread,
+          [threadId]: messages.map((msg) =>
             msg.id === id || msg.tempId === id ? { ...msg, status } : msg,
           ),
         },
       };
     }),
 
-  updateMessageId: (sessionKey, tempId, realId) =>
+  updateMessageId: (threadId, tempId, realId) =>
     set((state) => {
-      const messages = state.messagesBySession[sessionKey];
+      const messages = state.messagesByThread[threadId];
       if (!messages) return state;
       return {
-        messagesBySession: {
-          ...state.messagesBySession,
-          [sessionKey]: messages.map((msg) =>
+        messagesByThread: {
+          ...state.messagesByThread,
+          [threadId]: messages.map((msg) =>
             msg.tempId === tempId || msg.id === tempId
               ? { ...msg, id: realId }
               : msg,
@@ -91,20 +102,20 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       };
     }),
 
-  migrateSessionMessages: (oldKey, newKey) =>
+  migrateThreadMessages: (tempThreadId, realThreadId) =>
     set((state) => {
-      const messages = state.messagesBySession[oldKey];
+      const messages = state.messagesByThread[tempThreadId];
       if (!messages) return state;
-      const next = { ...state.messagesBySession };
-      delete next[oldKey];
-      next[newKey] = messages;
-      return { messagesBySession: next };
+      const next = { ...state.messagesByThread };
+      delete next[tempThreadId];
+      next[realThreadId] = messages;
+      return { messagesByThread: next };
     }),
 
-  clearSessionMessages: (sessionKey) =>
+  clearThreadMessages: (threadId) =>
     set((state) => {
-      const next = { ...state.messagesBySession };
-      delete next[sessionKey];
-      return { messagesBySession: next };
+      const next = { ...state.messagesByThread };
+      delete next[threadId];
+      return { messagesByThread: next };
     }),
 }));

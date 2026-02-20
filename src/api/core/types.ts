@@ -13,10 +13,10 @@ export enum PageDirection {
 export interface PageRequest {
   direction: PageDirection;
   limit: number;
-  cursor?: number;
+  cursor?: string;
 }
 
 export interface PageResponse {
-  next_cursor: number;
+  next_cursor: string;
   has_more: boolean;
 }

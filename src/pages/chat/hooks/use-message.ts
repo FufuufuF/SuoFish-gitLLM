@@ -18,32 +18,31 @@ export const mapMessageInToMessage = (msg: MessageIn): Message => ({
 });
 
 /**
- * 纯消息管理 Hook — 参数驱动，不依赖 session store
- * @param sessionKey 当前 session 的标识 (可以是数字 ID 或临时 UUID)
- * @param threadId 当前活跃的 thread ID
+ * 纯消息管理 Hook — 以 threadId 为最小存储单元
+ * @param threadId 当前活跃的 thread ID（真实 ID 或乐观更新阶段的临时 UUID）
  */
-export function useMessage(
-  sessionKey?: string | number | null,
-  threadId?: number,
-) {
+export function useMessage(threadId?: string | number | null) {
   const {
     getMessages,
     addMessage,
+    prependMessages,
     setMessages,
     updateMessageStatus,
     updateMessageId,
   } = useMessageStore();
 
-  const messages = sessionKey ? getMessages(sessionKey) : [];
+  const messages = threadId ? getMessages(threadId) : [];
 
   /**
-   * 获取历史消息（游标分页）
-   * @param cursor 游标 ID，不传则从最新一页开始
-   * @param limit 每页条数
+   * 加载消息（游标分页）
+   * - cursor 为空：初始加载，覆盖写入 store
+   * - cursor 有值：向上翻页，插入到消息列表头部
+   * @param cursor 游标，不传则从最新一条开始
+   * @param limit  每页条数，默认 50
    */
   const fetchMessages = useCallback(
-    async (cursor?: number, limit: number = 50) => {
-      if (!sessionKey || !threadId) return;
+    async (cursor?: string, limit: number = 50) => {
+      if (!threadId || typeof threadId === "string") return; // 临时 threadId 阶段不请求
 
       try {
         const response = await getMessageList({
@@ -52,40 +51,50 @@ export function useMessage(
           limit,
           cursor,
         });
-        setMessages(sessionKey, response.messages.map(mapMessageInToMessage));
+
+        const mapped = response.messages.map(mapMessageInToMessage);
+
+        if (cursor) {
+          prependMessages(threadId, mapped);
+        } else {
+          setMessages(threadId, mapped);
+        }
+
         return response;
       } catch (error) {
         console.error("Failed to fetch messages:", error);
         throw error;
       }
     },
-    [sessionKey, threadId, setMessages],
+    [threadId, prependMessages, setMessages],
   );
 
   /**
-   * 发送消息（已有会话场景，新会话首条消息由 useChatOrchestrator 处理）
+   * 发送消息（已有会话场景）
+   * 新会话首条消息由 useChatOrchestrator 处理
    */
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!sessionKey || !threadId) {
-        throw new Error("Cannot send message without active session");
+    async (content: string, sessionId: number) => {
+      if (!threadId || typeof threadId !== "number") {
+        throw new Error("Cannot send message without a real threadId");
       }
 
       const tempMsgId = crypto.randomUUID();
 
       // 乐观更新：立即显示用户消息
-      addMessage(sessionKey, {
+      addMessage(threadId, {
         id: tempMsgId,
         tempId: tempMsgId,
         role: 1,
         content,
         status: "sending",
         timestamp: new Date(),
+        threadId,
       });
 
       try {
         const response = await chatApi({
-          chat_session_id: Number(sessionKey),
+          chat_session_id: sessionId,
           thread_id: threadId,
           content,
         });
@@ -95,17 +104,17 @@ export function useMessage(
         const aiMsg = mapMessageInToMessage(response.ai_message);
 
         // 替换临时 ID，标记成功
-        updateMessageId(sessionKey, tempMsgId, Number(humanMsg.id));
-        updateMessageStatus(sessionKey, Number(humanMsg.id), "success");
+        updateMessageId(threadId, tempMsgId, Number(humanMsg.id));
+        updateMessageStatus(threadId, Number(humanMsg.id), "success");
 
         // 添加 AI 回复
-        addMessage(sessionKey, aiMsg);
+        addMessage(threadId, aiMsg);
       } catch (error) {
         console.error("Failed to send message:", error);
-        updateMessageStatus(sessionKey, tempMsgId, "error");
+        updateMessageStatus(threadId, tempMsgId, "error");
       }
     },
-    [sessionKey, threadId, addMessage, updateMessageId, updateMessageStatus],
+    [threadId, addMessage, updateMessageId, updateMessageStatus],
   );
 
   return {
