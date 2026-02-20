@@ -1,61 +1,71 @@
-import { useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Box } from "@mui/material";
 import { ChatInput, MessageList } from "./components";
-import { useMessage } from "./hooks/use-message";
+import { ThreadForkDialog } from "@/components/common/thread-fork-dialog";
+import { useMessage } from "../../hooks/use-message";
 import { useChatOrchestrator } from "./hooks/use-chat-orchestrator";
 import { useChatSessionStore } from "@/stores/chat-session-store";
+import { useThread } from "@/hooks/use-thread";
 
 export function ChatPage() {
   const { sessionId: urlSessionId } = useParams<{ sessionId?: string }>();
   const { sendFirstMessage } = useChatOrchestrator();
 
-  // Store 状态
-  // TODO: 组件直接消费Store中的数据是否合适? 是否需要通过 Hook 进行封装?
-  const activeSessionId = useChatSessionStore((s) => s.activeSessionId);
-  const sessions = useChatSessionStore((s) => s.sessions);
-  const setActiveSessionId = useChatSessionStore((s) => s.setActiveSessionId);
-
-  // URL sessionId 优先（始终为数字 ID），回退到 store 的 activeSessionId（新会话创建期间为 tempId）
+  // ----- Session 状态 -----
   const parsedUrlSessionId = urlSessionId ? Number(urlSessionId) : null;
   const isValidUrlSession =
     parsedUrlSessionId !== null && Number.isFinite(parsedUrlSessionId);
 
+  // 精确订阅：只在 activeSessionId 或 匹配的 session 自身变化时才重渲染
+  const activeSessionId = useChatSessionStore((s) => s.activeSessionId);
+  const setActiveSessionId = useChatSessionStore.getState().setActiveSessionId;
+
   const sessionKey = isValidUrlSession ? parsedUrlSessionId : activeSessionId;
   const isNewSessionMode = !sessionKey;
 
-  // 查找当前会话对象（获取 activeThreadId）
-  const activeSession = sessionKey
-    ? sessions.find((s) => s.id === sessionKey || s.tempId === sessionKey)
-    : undefined;
+  const { activeThreadId } = useThread();
 
-  // 纯消息 Hook — 以 threadId 为最小存储单元
-  const activeThreadId = activeSession?.activeThreadId;
+  // ----- Message Hook -----
   const { messages, sendMessage, fetchMessages } = useMessage(activeThreadId);
 
-  // 同步 URL sessionId → store（用于侧边栏高亮）
-  // 仅在 URL 有有效 sessionId 时同步，新会话模式由 sidebar 的 startNewSession 处理
+  // ----- Thread / Fork -----
+  const { forkThread } = useThread();
+
+  // Fork 禁用条件：处于新会话模式 或 临时 session（string）或 thread 尚未创建
+  const isForkDisabled =
+    isNewSessionMode ||
+    typeof activeSessionId === "string" ||
+    activeThreadId === null;
+
+  const [forkDialogOpen, setForkDialogOpen] = useState(false);
+
+  // ----- 同步 URL sessionId → store（用于侧边栏高亮） -----
   useLayoutEffect(() => {
     if (isValidUrlSession) {
       setActiveSessionId(parsedUrlSessionId);
     }
   }, [isValidUrlSession, parsedUrlSessionId, setActiveSessionId]);
 
-  // 切换到已有会话时拉取历史消息
+  // ----- 切换到已有会话时拉取历史消息 -----
   useEffect(() => {
     if (isValidUrlSession && activeThreadId) {
       fetchMessages();
     }
   }, [isValidUrlSession, activeThreadId, fetchMessages]);
 
+  // ----- 消息发送 -----
   const handleSend = async (content: string) => {
     if (isNewSessionMode) {
-      // 新会话首条消息 — 由 orchestrator 编排 session 创建 + 消息发送 + 路由跳转
       await sendFirstMessage(content);
     } else {
-      // 已有会话 — 直接发送消息
-      await sendMessage(content, Number(activeSession?.id));
+      await sendMessage(content, activeSessionId as number);
     }
+  };
+
+  // ----- Fork 确认 -----
+  const handleForkConfirm = async (title: string) => {
+    await forkThread(title);
   };
 
   return (
@@ -65,18 +75,28 @@ export function ChatPage() {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
         p: 4,
         width: "100%",
         height: "100%",
+        overflow: "hidden",
       }}
     >
-      <Box sx={{ width: "100%" }}>
+      <Box sx={{ flex: 1, width: "100%", overflowY: "auto", minHeight: 0 }}>
         <MessageList messages={messages} />
       </Box>
-      <Box sx={{ width: "80%" }}>
-        <ChatInput onSend={handleSend} />
+      <Box sx={{ width: "80%", flexShrink: 0 }}>
+        <ChatInput
+          onSend={handleSend}
+          onFork={() => setForkDialogOpen(true)}
+          forkDisabled={isForkDisabled}
+        />
       </Box>
+
+      <ThreadForkDialog
+        open={forkDialogOpen}
+        onClose={() => setForkDialogOpen(false)}
+        onConfirm={handleForkConfirm}
+      />
     </Box>
   );
 }

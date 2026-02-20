@@ -1,5 +1,4 @@
 export { ChatSessionList } from "./chat-session-list";
-export type { ChatSessionListProps } from "./chat-session-list";
 export { ChatSessionItem } from "./chat-session-item";
 export type { ChatSessionItemProps } from "./chat-session-item";
 export { ChatSessionListHeader } from "./chat-session-list-header";

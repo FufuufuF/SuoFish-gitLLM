@@ -27,8 +27,6 @@ export function MessageList({
   return (
     <Box
       sx={{
-        flex: 1,
-        overflowY: "auto",
         py: 2,
         display: "flex",
         flexDirection: "column",

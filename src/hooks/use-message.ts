@@ -29,7 +29,7 @@ export function useMessage(threadId?: string | number | null) {
     setMessages,
     updateMessageStatus,
     updateMessageId,
-  } = useMessageStore();
+  } = useMessageStore.getState();
 
   const messages = threadId ? getMessages(threadId) : [];
 

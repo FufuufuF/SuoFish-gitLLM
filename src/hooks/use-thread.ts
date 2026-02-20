@@ -16,40 +16,40 @@ const mapThreadInToThread = (thread: ThreadIn): Thread => ({
 });
 
 export function useThread() {
-  const { activeThreadId, threadsByChatSessionId } = useThreadStore(
+  // 合并为单一订阅，减少重渲染触发点
+  const { threadsByChatSessionId } = useThreadStore(
     useShallow((state) => ({
-      activeThreadId: state.activeThreadId,
       threadsByChatSessionId: state.threadsByChatSessionId,
     })),
   );
 
-  const addThreadStore = useThreadStore((state) => state.addThread);
-  const setActiveThreadIdStore = useThreadStore(
-    (state) => state.setActiveThreadId,
-  );
+  // actions 是稳定引用，通过 getState() 获取，不产生订阅
+  const { addThread: addThreadStore } = useThreadStore.getState();
 
-  const { activeSessionId } = useChatSessionStore((state) => ({
-    activeSessionId: state.activeSessionId,
-  }));
+  const activeSessionId = useChatSessionStore((state) => state.activeSessionId);
+  const activeThreadId = useChatSessionStore
+    .getState()
+    .sessions.find((s) => s.id === activeSessionId)?.activeThreadId;
 
   const getThreadsByChatSessionId = (chatSessionId: number) => {
     return threadsByChatSessionId[chatSessionId] || [];
   };
 
   const forkThread = async (title: string = "Default") => {
-    if (!activeThreadId || !activeSessionId) {
+    if (!activeSessionId) {
       return;
     }
     const forkThread = await forkThreadApi({
       chat_session_id: activeSessionId as number,
-      parent_thread_id: activeThreadId,
+      parent_thread_id: activeThreadId as number,
       title: title ?? null,
     });
     addThreadStore(mapThreadInToThread(forkThread.thread));
-    setActiveThreadIdStore(forkThread.thread.id);
   };
 
   return {
+    activeThreadId,
+
     getThreadsByChatSessionId,
     forkThread,
   };

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Box, IconButton, InputBase, Paper } from "@mui/material";
-import { Send, AttachFile, Mic } from "@mui/icons-material";
+import { Box, IconButton, InputBase, Paper, Tooltip } from "@mui/material";
+import { Send, AttachFile, Mic, CallSplit } from "@mui/icons-material";
 
 interface ChatInputProps {
   /** 发送回调，参数为输入的消息内容 */
@@ -9,6 +9,10 @@ interface ChatInputProps {
   onAttach?: () => void;
   /** 语音输入回调 */
   onVoice?: () => void;
+  /** Fork 记忆分支回调，不传则不显示该按钮 */
+  onFork?: () => void;
+  /** Fork 按钮禁用（无活跃 thread 时为 true） */
+  forkDisabled?: boolean;
   /** 占位符文本 */
   placeholder?: string;
 }
@@ -17,6 +21,8 @@ export function ChatInput({
   onSend,
   onAttach,
   onVoice,
+  onFork,
+  forkDisabled = false,
   placeholder = "输入消息...",
 }: ChatInputProps) {
   const [value, setValue] = useState("");
@@ -105,6 +111,22 @@ export function ChatInput({
         >
           {/* 左侧工具按钮 */}
           <Box sx={{ display: "flex", gap: 0.5 }}>
+            {onFork && (
+              <Tooltip
+                title={forkDisabled ? "请先发送消息再 Fork" : "Fork 记忆分支"}
+              >
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={onFork}
+                    disabled={loading || forkDisabled}
+                    sx={{ color: "text.secondary" }}
+                  >
+                    <CallSplit fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
             {onAttach && (
               <IconButton
                 size="small"
@@ -152,7 +174,7 @@ export function ChatInput({
           textAlign: "center",
           mt: 1,
           color: "text.secondary",
-          fontSize: "0.75rem",
+          fontSize: "1rem",
         }}
       >
         SuoFish 是一个 AI 助手

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { chat as chatApi } from "@/api/common";
 import { useChatSession } from "@/hooks";
 import { useMessageStore } from "@/stores/message-store";
-import { mapMessageInToMessage } from "./use-message";
+import { mapMessageInToMessage } from "../../../hooks/use-message";
 
 /**
  * 新会话编排 Hook — 处理"新会话第一条消息"的跨 store 逻辑
