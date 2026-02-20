@@ -16,10 +16,10 @@ const mapThreadInToThread = (thread: ThreadIn): Thread => ({
 });
 
 export function useThread() {
-  const { activeThreadId, threadByChatSessionId } = useThreadStore(
+  const { activeThreadId, threadsByChatSessionId } = useThreadStore(
     useShallow((state) => ({
       activeThreadId: state.activeThreadId,
-      threadByChatSessionId: state.threadByChatSessionId,
+      threadsByChatSessionId: state.threadsByChatSessionId,
     })),
   );
 
@@ -33,17 +33,11 @@ export function useThread() {
   }));
 
   const getThreadsByChatSessionId = (chatSessionId: number) => {
-    return Object.values(threadByChatSessionId).filter(
-      (thread) => thread.chatSessionId === chatSessionId,
-    );
+    return threadsByChatSessionId[chatSessionId] || [];
   };
 
   const forkThread = async (title: string = "Default") => {
     if (!activeThreadId || !activeSessionId) {
-      return;
-    }
-    const thread = threadByChatSessionId[activeThreadId];
-    if (!thread) {
       return;
     }
     const forkThread = await forkThreadApi({
