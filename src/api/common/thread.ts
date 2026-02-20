@@ -29,3 +29,19 @@ export async function forkThread(request: ForkThreadRequest) {
     request,
   );
 }
+
+// ========= Thread List 接口 =========
+
+export interface ThreadListRequest {
+  chat_session_id: number;
+}
+
+export interface ThreadListResponse {
+  threads: ThreadIn[];
+}
+
+export async function getThreadList(params: ThreadListRequest) {
+  return apiClient.get<ThreadListResponse>(
+    `/threads/${params.chat_session_id}/list`,
+  );
+}

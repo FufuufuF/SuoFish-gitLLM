@@ -16,13 +16,6 @@ const mapThreadInToThread = (thread: ThreadIn): Thread => ({
 });
 
 export function useThread() {
-  // 合并为单一订阅，减少重渲染触发点
-  const { threadsByChatSessionId } = useThreadStore(
-    useShallow((state) => ({
-      threadsByChatSessionId: state.threadsByChatSessionId,
-    })),
-  );
-
   // actions 是稳定引用，通过 getState() 获取，不产生订阅
   const { addThread: addThreadStore } = useThreadStore.getState();
 
@@ -30,10 +23,6 @@ export function useThread() {
   const activeThreadId = useChatSessionStore
     .getState()
     .sessions.find((s) => s.id === activeSessionId)?.activeThreadId;
-
-  const getThreadsByChatSessionId = (chatSessionId: number) => {
-    return threadsByChatSessionId[chatSessionId] || [];
-  };
 
   const forkThread = async (title: string = "Default") => {
     if (!activeSessionId) {
@@ -50,7 +39,6 @@ export function useThread() {
   return {
     activeThreadId,
 
-    getThreadsByChatSessionId,
     forkThread,
   };
 }
