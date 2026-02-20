@@ -49,10 +49,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     set((state) => ({
       messagesBySession: {
         ...state.messagesBySession,
-        [sessionKey]: [
-          ...(state.messagesBySession[sessionKey] ?? []),
-          message,
-        ],
+        [sessionKey]: [...(state.messagesBySession[sessionKey] ?? []), message],
       },
     })),
 

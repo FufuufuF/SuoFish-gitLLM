@@ -1,21 +1,20 @@
 import { useCallback } from "react";
-import { chat as chatApi, getMessage as getMessageApi } from "@/api/common";
-import type { ChatMessage } from "@/api/common/message";
+import { chat as chatApi, getMessageList } from "@/api/common";
+import type { MessageIn } from "@/api/common/message";
+import { PageDirection } from "@/api/core/types";
 import type { Message, MessageRole } from "@/types";
 import { useMessageStore } from "@/stores/message-store";
 
 /**
- * 将 API 层的 ChatMessage 转换为业务层的 Message
+ * 将 API 层的 MessageIn 转换为业务层的 Message
  */
-export const mapChatMessageToMessage = (
-  chatMsg: ChatMessage,
-  role: MessageRole,
-): Message => ({
-  id: chatMsg.id,
-  role,
-  content: chatMsg.content,
+export const mapMessageInToMessage = (msg: MessageIn): Message => ({
+  id: msg.id,
+  role: msg.role as MessageRole,
+  content: msg.content,
   status: "success",
-  timestamp: new Date(chatMsg.create_at),
+  timestamp: new Date(msg.create_at),
+  threadId: msg.thread_id,
 });
 
 /**
@@ -38,28 +37,22 @@ export function useMessage(
   const messages = sessionKey ? getMessages(sessionKey) : [];
 
   /**
-   * 获取历史消息
+   * 获取历史消息（游标分页）
+   * @param cursor 游标 ID，不传则从最新一页开始
+   * @param limit 每页条数
    */
   const fetchMessages = useCallback(
-    async (page: number = 1, pageSize: number = 50) => {
+    async (cursor?: number, limit: number = 50) => {
       if (!sessionKey || !threadId) return;
 
       try {
-        const response = await getMessageApi({
-          chat_session_id: Number(sessionKey),
+        const response = await getMessageList({
           thread_id: threadId,
-          page,
-          page_size: pageSize,
+          direction: PageDirection.BEFORE,
+          limit,
+          cursor,
         });
-        setMessages(
-          sessionKey,
-          response.messages.map((msg) => ({
-            ...msg,
-            role: msg.role as MessageRole,
-            status: "success" as const,
-            timestamp: new Date(msg.create_at),
-          })),
-        );
+        setMessages(sessionKey, response.messages.map(mapMessageInToMessage));
         return response;
       } catch (error) {
         console.error("Failed to fetch messages:", error);
@@ -98,8 +91,8 @@ export function useMessage(
         });
 
         // 数据转换
-        const humanMsg = mapChatMessageToMessage(response.human_message, 1);
-        const aiMsg = mapChatMessageToMessage(response.ai_message, 2);
+        const humanMsg = mapMessageInToMessage(response.human_message);
+        const aiMsg = mapMessageInToMessage(response.ai_message);
 
         // 替换临时 ID，标记成功
         updateMessageId(sessionKey, tempMsgId, Number(humanMsg.id));

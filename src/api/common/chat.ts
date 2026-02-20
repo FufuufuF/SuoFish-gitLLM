@@ -1,5 +1,5 @@
 import { apiClient } from "../core/client";
-import type { ChatMessage } from "./message";
+import type { MessageIn } from "./message";
 
 export interface ChatRequest {
   chat_session_id: number;
@@ -10,8 +10,8 @@ export interface ChatRequest {
 export interface ChatResponse {
   chat_session_id: number;
   thread_id: number;
-  human_message: ChatMessage;
-  ai_message: ChatMessage;
+  human_message: MessageIn;
+  ai_message: MessageIn;
 }
 
 /**

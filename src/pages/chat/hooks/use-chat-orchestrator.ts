@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { chat as chatApi } from "@/api/common";
 import { useChatSession } from "@/hooks";
 import { useMessageStore } from "@/stores/message-store";
-import { mapChatMessageToMessage } from "./use-message";
+import { mapMessageInToMessage } from "./use-message";
 
 /**
  * 新会话编排 Hook — 处理"新会话第一条消息"的跨 store 逻辑
@@ -54,8 +54,8 @@ export function useChatOrchestrator() {
       });
 
       // 4. 更新消息（在迁移前完成，确保数据完整）
-      const humanMsg = mapChatMessageToMessage(response.human_message, 1);
-      const aiMsg = mapChatMessageToMessage(response.ai_message, 2);
+      const humanMsg = mapMessageInToMessage(response.human_message);
+      const aiMsg = mapMessageInToMessage(response.ai_message);
       updateMessageId(tempSessionId, tempMsgId, Number(humanMsg.id));
       updateMessageStatus(tempSessionId, Number(humanMsg.id), "success");
       addMessage(tempSessionId, aiMsg);
