@@ -1,4 +1,4 @@
-import { apiClient } from "@/api";
+import { apiClient } from "../core/client";
 import type { ChatMessage } from "./message";
 
 export interface ChatRequest {

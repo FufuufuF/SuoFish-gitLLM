@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { chat as chatApi } from "@/pages/api";
+import { chat as chatApi } from "@/api/common";
 import { useChatSession } from "@/hooks";
 import { useMessageStore } from "@/stores/message-store";
 import { mapChatMessageToMessage } from "./use-message";

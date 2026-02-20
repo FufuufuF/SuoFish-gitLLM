@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { chat as chatApi, getMessage as getMessageApi } from "@/pages/api";
-import type { ChatMessage } from "@/pages/api/message";
+import { chat as chatApi, getMessage as getMessageApi } from "@/api/common";
+import type { ChatMessage } from "@/api/common/message";
 import type { Message, MessageRole } from "@/types";
 import { useMessageStore } from "@/stores/message-store";
 
@@ -40,74 +40,80 @@ export function useMessage(
   /**
    * 获取历史消息
    */
-  const fetchMessages = useCallback(async (page: number = 1, pageSize: number = 50) => {
-    if (!sessionKey || !threadId) return;
+  const fetchMessages = useCallback(
+    async (page: number = 1, pageSize: number = 50) => {
+      if (!sessionKey || !threadId) return;
 
-    try {
-      const response = await getMessageApi({
-        chat_session_id: Number(sessionKey),
-        thread_id: threadId,
-        page,
-        page_size: pageSize,
-      });
-      setMessages(
-        sessionKey,
-        response.messages.map((msg) => ({
-          ...msg,
-          role: msg.role as MessageRole,
-          status: "success" as const,
-          timestamp: new Date(msg.create_at),
-        })),
-      );
-      return response;
-    } catch (error) {
-      console.error("Failed to fetch messages:", error);
-      throw error;
-    }
-  }, [sessionKey, threadId, setMessages]);
+      try {
+        const response = await getMessageApi({
+          chat_session_id: Number(sessionKey),
+          thread_id: threadId,
+          page,
+          page_size: pageSize,
+        });
+        setMessages(
+          sessionKey,
+          response.messages.map((msg) => ({
+            ...msg,
+            role: msg.role as MessageRole,
+            status: "success" as const,
+            timestamp: new Date(msg.create_at),
+          })),
+        );
+        return response;
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+        throw error;
+      }
+    },
+    [sessionKey, threadId, setMessages],
+  );
 
   /**
    * 发送消息（已有会话场景，新会话首条消息由 useChatOrchestrator 处理）
    */
-  const sendMessage = useCallback(async (content: string) => {
-    if (!sessionKey || !threadId) {
-      throw new Error("Cannot send message without active session");
-    }
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!sessionKey || !threadId) {
+        throw new Error("Cannot send message without active session");
+      }
 
-    const tempMsgId = crypto.randomUUID();
+      const tempMsgId = crypto.randomUUID();
 
-    // 乐观更新：立即显示用户消息
-    addMessage(sessionKey, {
-      id: tempMsgId,
-      tempId: tempMsgId,
-      role: 1,
-      content,
-      status: "sending",
-      timestamp: new Date(),
-    });
-
-    try {
-      const response = await chatApi({
-        chat_session_id: Number(sessionKey),
-        thread_id: threadId,
+      // 乐观更新：立即显示用户消息
+      addMessage(sessionKey, {
+        id: tempMsgId,
+        tempId: tempMsgId,
+        role: 1,
         content,
+        status: "sending",
+        timestamp: new Date(),
       });
 
-      // 数据转换
-      const humanMsg = mapChatMessageToMessage(response.human_message, 1);
-      const aiMsg = mapChatMessageToMessage(response.ai_message, 2);
+      try {
+        const response = await chatApi({
+          chat_session_id: Number(sessionKey),
+          thread_id: threadId,
+          content,
+        });
 
-      // 替换临时 ID，标记成功
-      updateMessageId(sessionKey, tempMsgId, Number(humanMsg.id));
-      updateMessageStatus(sessionKey, Number(humanMsg.id), "success");
+        // 数据转换
+        const humanMsg = mapChatMessageToMessage(response.human_message, 1);
+        const aiMsg = mapChatMessageToMessage(response.ai_message, 2);
 
-      // 添加 AI 回复
-      addMessage(sessionKey, aiMsg);
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      updateMessageStatus(sessionKey, tempMsgId, "error");
-    }
-  }, [sessionKey, threadId, addMessage, updateMessageId, updateMessageStatus]);
+        // 替换临时 ID，标记成功
+        updateMessageId(sessionKey, tempMsgId, Number(humanMsg.id));
+        updateMessageStatus(sessionKey, Number(humanMsg.id), "success");
+
+        // 添加 AI 回复
+        addMessage(sessionKey, aiMsg);
+      } catch (error) {
+        console.error("Failed to send message:", error);
+        updateMessageStatus(sessionKey, tempMsgId, "error");
+      }
+    },
+    [sessionKey, threadId, addMessage, updateMessageId, updateMessageStatus],
+  );
 
   return {
     messages,
