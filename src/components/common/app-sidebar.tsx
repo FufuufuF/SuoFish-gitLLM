@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { ChatSessionList } from "@/feature/chat-session-list";
+import { ChatSessionList } from "@/feature";
 
 // ===== 组件实现 =====
 
