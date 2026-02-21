@@ -40,6 +40,10 @@ export class ApiClient {
   public post<T, D>(apiPath: string, data: D): Promise<T> {
     return this.axios.post(apiPath, data);
   }
+
+  public patch<T, D>(apiPath: string, data: D): Promise<T> {
+    return this.axios.patch(apiPath, data);
+  }
 }
 
 export const apiClient = new ApiClient();
