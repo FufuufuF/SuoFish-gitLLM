@@ -19,9 +19,9 @@ export interface ChatSessionItemProps {
   /** 标题是否正在生成中（显示 Skeleton 占位） */
   isTitleGenerating: boolean;
   /** 点击会话项 */
-  onClick: (sessionId: string | number) => void;
+  onClick: (chatSessionId: string | number) => void;
   /** 点击操作菜单按钮 */
-  onMenuClick?: (sessionId: string | number, anchor: HTMLElement) => void;
+  onMenuClick?: (chatSessionId: string | number, anchor: HTMLElement) => void;
 }
 
 // ===== 辅助函数 =====

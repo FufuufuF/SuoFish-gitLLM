@@ -29,12 +29,12 @@ interface UseThreadTreeReturn {
 }
 
 // ─── Hook 实现 ──────────────────────────────────────────────────────────────
-export function useThreadTree(sessionId: number): UseThreadTreeReturn {
+export function useThreadTree(chatSessionId: number): UseThreadTreeReturn {
   // 1. 从 Store 读取扁平列表（响应式订阅）
   // selector 只返回原始值（undefined 时不在 selector 内新建数组），
   // ?? 操作符在外部引用稳定常量，保证 referential equality
   const threads =
-    useThreadStore((state) => state.threadsByChatSessionId[sessionId]) ??
+    useThreadStore((state) => state.threadsByChatSessionId[chatSessionId]) ??
     EMPTY_THREADS;
   const setThreads = useThreadStore.getState().setThreads;
 
@@ -49,11 +49,11 @@ export function useThreadTree(sessionId: number): UseThreadTreeReturn {
     setIsLoading(true);
     setError(null);
 
-    getThreadList({ chat_session_id: sessionId })
+    getThreadList({ chat_session_id: chatSessionId })
       .then((res) => {
         if (cancelled) return;
         // 3. 数据转换在 Hook 层完成，写入 Store
-        setThreads(sessionId, res.threads.map(mapThreadInToThread));
+        setThreads(chatSessionId, res.threads.map(mapThreadInToThread));
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -66,9 +66,9 @@ export function useThreadTree(sessionId: number): UseThreadTreeReturn {
     return () => {
       cancelled = true;
     };
-    // 仅在 sessionId 变化时重新触发；threads 不作为依赖（避免懒加载判断死循环）
+    // 仅在 chatSessionId 变化时重新触发；threads 不作为依赖（避免懒加载判断死循环）
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [chatSessionId]);
 
   // 4. 派生树结构（纯计算，threads 稳定时不重算）
   const tree = useMemo(

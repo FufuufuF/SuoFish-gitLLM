@@ -4,7 +4,7 @@ import { create } from "zustand";
 export interface ThreadStore {
   threadsByChatSessionId: Record<number, Thread[]>;
   addThread: (thread: Thread) => void;
-  setThreads: (sessionId: number, threads: Thread[]) => void;
+  setThreads: (chatSessionId: number, threads: Thread[]) => void;
 }
 
 export const useThreadStore = create<ThreadStore>((set) => ({
@@ -19,11 +19,11 @@ export const useThreadStore = create<ThreadStore>((set) => ({
         ],
       },
     })),
-  setThreads: (sessionId, threads) =>
+  setThreads: (chatSessionId, threads) =>
     set((state) => ({
       threadsByChatSessionId: {
         ...state.threadsByChatSessionId,
-        [sessionId]: threads,
+        [chatSessionId]: threads,
       },
     })),
 }));

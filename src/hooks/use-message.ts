@@ -74,7 +74,7 @@ export function useMessage(threadId?: string | number | null) {
    * 新会话首条消息由 useChatOrchestrator 处理
    */
   const sendMessage = useCallback(
-    async (content: string, sessionId: number) => {
+    async (content: string, chatSessionId: number) => {
       if (!threadId || typeof threadId !== "number") {
         throw new Error("Cannot send message without a real threadId");
       }
@@ -94,7 +94,7 @@ export function useMessage(threadId?: string | number | null) {
 
       try {
         const response = await chatApi({
-          chat_session_id: sessionId,
+          chat_session_id: chatSessionId,
           thread_id: threadId,
           content,
         });

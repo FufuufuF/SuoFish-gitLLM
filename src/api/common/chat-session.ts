@@ -1,5 +1,9 @@
 import { apiClient } from "../core/client";
 
+/**
+ * 会话列表接口
+ */
+
 // ===== 请求/响应类型 =====
 
 export interface GetChatSessionListRequest {
@@ -41,3 +45,21 @@ export async function getChatSessionList(request: GetChatSessionListRequest) {
 
 // 注意：createChatSession 不在此处实现
 // 会话创建是 chat API 的副作用，在发送第一条消息时自动完成
+
+/**
+ * 更新会话活跃线程接口
+ */
+
+// ===== 请求/响应类型 =====
+
+export interface UpdateChatSessionActiveThreadRequest {
+  chat_session_id: number;
+  active_thread_id: number;
+}
+
+// ===== API 函数 =====
+
+/**
+ * 更新会话
+ * 注意：返回原始 API 响应，数据转换由 Hook 层完成
+ */

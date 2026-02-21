@@ -9,14 +9,14 @@ import { ThreadTreeSkeleton } from "./components/thread-tree-skeleton";
 // ===== 类型定义 =====
 
 export interface ThreadTreePanelProps {
-  sessionId: number;
+  chatSessionId: number;
 }
 
 // ===== 组件实现 =====
 
-export function ThreadTreePanel({ sessionId }: ThreadTreePanelProps) {
+export function ThreadTreePanel({ chatSessionId }: ThreadTreePanelProps) {
   // ── 数据层：通过 Hook 加载（懒加载 + 建树 + 状态管理）
-  const { tree, isLoading, error } = useThreadTree(sessionId);
+  const { tree, isLoading, error } = useThreadTree(chatSessionId);
 
   // ── 活跃 thread（响应式 selector，禁止用 getState() 快照）
   const activeThreadId = useChatSessionStore(
@@ -44,7 +44,7 @@ export function ThreadTreePanel({ sessionId }: ThreadTreePanelProps) {
   const handleNodeClick = (threadId: number) => {
     if (threadId === activeThreadId) return;
     // 乐观更新：树节点高亮立刻切换
-    updateActiveThreadId(sessionId, threadId);
+    updateActiveThreadId(chatSessionId, threadId);
     // TODO: 后续接入 switchThread Hook（API 调用 + 消息列表刷新）
   };
 

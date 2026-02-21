@@ -23,8 +23,8 @@ export function ChatSessionList() {
   } = useChatSession();
 
   /** 切换到已有会话（路由导航） */
-  const handleSwitchSession = (sessionId: string | number) => {
-    navigate(`/chat/${sessionId}`);
+  const handleSwitchSession = (chatSessionId: string | number) => {
+    navigate(`/chat/${chatSessionId}`);
   };
 
   /** 创建新会话（路由导航 + 清空激活状态） */

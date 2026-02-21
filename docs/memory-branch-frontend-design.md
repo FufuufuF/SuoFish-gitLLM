@@ -21,13 +21,13 @@
 
 ## 0. 设计决策总览
 
-| 决策项 | 选择 | 理由 |
-|---|---|---|
-| **线程树位置** | Sidebar 内 Tab 切换（Session列表 / Thread树） | 用户提出；常驻可见，切换成本低 |
-| **消息加载接口** | `context-messages` 完全替代旧 `POST /message/` | 统一游标分页 + 跨线程聚合，消除两套分页逻辑 |
-| **Fork 触发位置** | Chat 顶部面包屑栏的操作按钮 | 操作区集中，不污染消息列表 |
-| **Merge UI 形态** | 右侧 Drawer 面板 | 沉浸式编辑简报，不遮挡主聊天区 |
-| **Store 消息键** | 由 `sessionKey` → `threadId` 迁移 | context-messages 以 thread 为粒度返回，thread 是消息的最小展示单元 |
+| 决策项            | 选择                                           | 理由                                                               |
+| ----------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
+| **线程树位置**    | Sidebar 内 Tab 切换（Session列表 / Thread树）  | 用户提出；常驻可见，切换成本低                                     |
+| **消息加载接口**  | `context-messages` 完全替代旧 `POST /message/` | 统一游标分页 + 跨线程聚合，消除两套分页逻辑                        |
+| **Fork 触发位置** | Chat 顶部面包屑栏的操作按钮                    | 操作区集中，不污染消息列表                                         |
+| **Merge UI 形态** | 右侧 Drawer 面板                               | 沉浸式编辑简报，不遮挡主聊天区                                     |
+| **Store 消息键**  | 由 `sessionKey` → `threadId` 迁移              | context-messages 以 thread 为粒度返回，thread 是消息的最小展示单元 |
 
 ---
 
@@ -119,12 +119,12 @@ export type MessageRole = 1 | 2 | 3; // 1=user, 2=assistant, 3=system
 export interface Message {
   id: number | string;
   role: MessageRole;
-  type?: MessageType;          // 新增：1=CHAT, 2=BRIEF
+  type?: MessageType; // 新增：1=CHAT, 2=BRIEF
   content: string;
   status?: MessageStatus;
   tempId?: string;
   timestamp?: Date;
-  threadId?: number;           // 新增：消息所属线程，用于视觉分区
+  threadId?: number; // 新增：消息所属线程，用于视觉分区
 }
 ```
 
@@ -145,7 +145,7 @@ export interface ContextMessage {
 ### 修改文件: `src/types/index.ts`
 
 ```typescript
-export * from "./thread";       // 新增
+export * from "./thread"; // 新增
 export type { ContextMessage } from "./thread"; // 新增
 ```
 
@@ -170,8 +170,12 @@ public patch<T, D>(apiPath: string, data: D): Promise<T> {
 ```typescript
 import { apiClient } from "@/api";
 import type {
-  Thread, ThreadTreeNode, BreadcrumbItem,
-  MergePreview, MergeConfirmResult, ContextMessage,
+  Thread,
+  ThreadTreeNode,
+  BreadcrumbItem,
+  MergePreview,
+  MergeConfirmResult,
+  ContextMessage,
 } from "@/types";
 
 // ===== 类型定义（API 层，snake_case → 由 hook 层转换） =====
@@ -284,25 +288,35 @@ export const forkThread = (data: ForkRequest) =>
 /** 合并预览 */
 export const getMergePreview = (threadId: number) =>
   apiClient.post<MergePreviewResponse, undefined>(
-    `/threads/${threadId}/merge/preview`, undefined
+    `/threads/${threadId}/merge/preview`,
+    undefined,
   );
 
 /** 确认合并 */
 export const confirmMerge = (threadId: number, briefContent: string) =>
   apiClient.post<MergeConfirmResponse, MergeConfirmRequest>(
-    `/threads/${threadId}/merge/confirm`, { brief_content: briefContent }
+    `/threads/${threadId}/merge/confirm`,
+    { brief_content: briefContent },
   );
 
 /** 获取上下文消息（游标分页） */
-export const getContextMessages = (threadId: number, params?: ContextMessagesParams) =>
+export const getContextMessages = (
+  threadId: number,
+  params?: ContextMessagesParams,
+) =>
   apiClient.get<ContextMessagesResponse>(
-    `/threads/${threadId}/context-messages`, params
+    `/threads/${threadId}/context-messages`,
+    params,
   );
 
 /** 更新会话（切换线程/改标题） */
-export const updateChatSession = (sessionId: number, data: UpdateSessionRequest) =>
+export const updateChatSession = (
+  chatSessionId: number,
+  data: UpdateSessionRequest,
+) =>
   apiClient.patch<UpdateSessionResponse, UpdateSessionRequest>(
-    `/chat_sessions/${sessionId}`, data
+    `/chat_sessions/${chatSessionId}`,
+    data,
   );
 
 /** 获取面包屑 */
@@ -310,9 +324,9 @@ export const getBreadcrumb = (threadId: number) =>
   apiClient.get<BreadcrumbResponse>(`/threads/${threadId}/breadcrumb`);
 
 /** 获取线程树 */
-export const getThreadTree = (sessionId: number) =>
+export const getThreadTree = (chatSessionId: number) =>
   apiClient.get<ThreadTreeResponse>(
-    `/chat_sessions/${sessionId}/thread-tree`
+    `/chat_sessions/${chatSessionId}/thread-tree`,
   );
 ```
 
@@ -321,7 +335,7 @@ export const getThreadTree = (sessionId: number) =>
 ```typescript
 export * from "./chat";
 export * from "./message";
-export * from "./thread";    // 新增
+export * from "./thread"; // 新增
 ```
 
 ---
@@ -367,7 +381,10 @@ interface ThreadStore {
   addThreadToTree: (node: ThreadTreeNode) => void;
 
   /** 更新树中某个线程的状态（merge 后标记为 MERGED） */
-  updateThreadInTree: (threadId: number, updates: Partial<ThreadTreeNode>) => void;
+  updateThreadInTree: (
+    threadId: number,
+    updates: Partial<ThreadTreeNode>,
+  ) => void;
 
   setMergePreview: (preview: MergePreview | null) => void;
   setMergeDrawerOpen: (open: boolean) => void;
@@ -383,7 +400,7 @@ interface ThreadStore {
 **核心变更：消息按 threadId 索引**
 
 ```
-之前: messagesBySession[sessionId] → Message[]
+之前: messagesBySession[chatSessionId] → Message[]
 之后: messagesByThread[threadId]  → Message[]
 ```
 
@@ -395,15 +412,25 @@ interface MessageStore {
   messagesByThread: Record<number, Message[]>;
 
   /** 每个 threadId 的分页游标 */
-  cursorsByThread: Record<number, { nextCursor: string | null; hasMore: boolean }>;
+  cursorsByThread: Record<
+    number,
+    { nextCursor: string | null; hasMore: boolean }
+  >;
 
   // Actions
   getMessages: (threadId: number) => Message[];
   setMessages: (threadId: number, messages: Message[]) => void;
-  prependMessages: (threadId: number, messages: Message[]) => void;  // 滚动加载
+  prependMessages: (threadId: number, messages: Message[]) => void; // 滚动加载
   addMessage: (threadId: number, message: Message) => void;
-  setCursor: (threadId: number, cursor: string | null, hasMore: boolean) => void;
-  getCursor: (threadId: number) => { nextCursor: string | null; hasMore: boolean };
+  setCursor: (
+    threadId: number,
+    cursor: string | null,
+    hasMore: boolean,
+  ) => void;
+  getCursor: (threadId: number) => {
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
 
   // 保留原有的 updateMessageStatus, updateMessageId 等，改为 threadId 索引
   clearThreadMessages: (threadId: number) => void;
@@ -417,7 +444,7 @@ interface MessageStore {
 ```typescript
 export { useChatSessionStore } from "./chat-session-store";
 export { useMessageStore } from "./message-store";
-export { useThreadStore } from "./thread-store";   // 新增
+export { useThreadStore } from "./thread-store"; // 新增
 ```
 
 ---
@@ -429,7 +456,10 @@ export { useThreadStore } from "./thread-store";   // 新增
 **线程操作编排 Hook** — 处理 fork / merge / switch 的全流程（含 store 更新、API 调用、面包屑刷新）。
 
 ```typescript
-export function useThread(sessionId: number | null, activeThreadId: number | null) {
+export function useThread(
+  chatSessionId: number | null,
+  activeThreadId: number | null,
+) {
   // 返回值:
   return {
     // 数据
@@ -440,15 +470,15 @@ export function useThread(sessionId: number | null, activeThreadId: number | nul
     isMergeDrawerOpen,
 
     // 操作
-    forkThread,           // 创建分支: fork → 加载消息 → 更新面包屑
-    switchThread,         // 切换分支: PATCH session + 加载消息（并行）+ 更新面包屑
-    startMergePreview,    // 打开合并: 获取预览 → 打开 Drawer
-    confirmMerge,         // 确认合并: POST confirm → 加载父线程消息 → 更新面包屑
-    cancelMerge,          // 取消合并: 关闭 Drawer
+    forkThread, // 创建分支: fork → 加载消息 → 更新面包屑
+    switchThread, // 切换分支: PATCH session + 加载消息（并行）+ 更新面包屑
+    startMergePreview, // 打开合并: 获取预览 → 打开 Drawer
+    confirmMerge, // 确认合并: POST confirm → 加载父线程消息 → 更新面包屑
+    cancelMerge, // 取消合并: 关闭 Drawer
 
     // 数据加载
-    fetchThreadTree,      // 加载线程树
-    fetchBreadcrumb,      // 加载面包屑
+    fetchThreadTree, // 加载线程树
+    fetchBreadcrumb, // 加载面包屑
   };
 }
 ```
@@ -459,13 +489,13 @@ export function useThread(sessionId: number | null, activeThreadId: number | nul
 forkThread(title?)
   1. POST /threads/fork → 获得 newThread
   2. addThreadToTree(newThread)
-  3. updateActiveThreadId(sessionId, newThread.id)   // chat-session-store
+  3. updateActiveThreadId(chatSessionId, newThread.id)   // chat-session-store
   4. GET /threads/{newThread.id}/context-messages     // 加载消息
   5. GET /threads/{newThread.id}/breadcrumb           // 更新面包屑
 
 switchThread(targetThreadId)
   1. 并行请求:
-     - PATCH /chat_sessions/{sessionId}              // 切换 active_thread
+     - PATCH /chat_sessions/{chatSessionId}              // 切换 active_thread
      - GET /threads/{targetThreadId}/context-messages // 加载消息
   2. GET /threads/{targetThreadId}/breadcrumb         // 更新面包屑
   3. setActiveThreadId(targetThreadId)
@@ -478,7 +508,7 @@ startMergePreview(threadId)
 confirmMerge(threadId, editedBrief)
   1. POST /threads/{threadId}/merge/confirm → 获得结果
   2. updateThreadInTree(threadId, { status: MERGED })
-  3. updateActiveThreadId(sessionId, result.targetThread.id)
+  3. updateActiveThreadId(chatSessionId, result.targetThread.id)
   4. GET /threads/{targetThread.id}/context-messages   // 加载父线程消息
   5. GET /threads/{targetThread.id}/breadcrumb          // 更新面包屑
   6. setMergeDrawerOpen(false)
@@ -497,9 +527,9 @@ export function useMessage(threadId?: number | null) {
   return {
     messages,
     sendMessage,
-    fetchMessages,     // 初始加载（不传 cursor）
-    loadMore,          // 滚动加载更多
-    hasMore,           // 是否还有更多消息
+    fetchMessages, // 初始加载（不传 cursor）
+    loadMore, // 滚动加载更多
+    hasMore, // 是否还有更多消息
   };
 }
 ```
@@ -514,7 +544,7 @@ export function useMessage(threadId?: number | null) {
 
 ```typescript
 export { useChatSession } from "./use-chat-session";
-export { useThread } from "./use-thread";    // 新增
+export { useThread } from "./use-thread"; // 新增
 ```
 
 ---
@@ -528,6 +558,7 @@ export { useThread } from "./use-thread";    // 新增
 位于聊天区域顶部，展示 `[主线] > [父线程] > [当前线程]` 的路径导航。
 
 功能：
+
 - 显示面包屑链路（点击某节点 → 切换到该线程）
 - 右侧操作按钮：
   - **🔀 创建分支** — 从当前线程 fork
@@ -546,6 +577,7 @@ UI 技术：MUI `Breadcrumbs` + `Chip` + `IconButton`
 **新建文件: `src/pages/chat/components/merge-drawer.tsx`**
 
 功能：
+
 - 展示 LLM 生成的学习简报预览（Markdown 渲染）
 - 内置文本编辑器（`textarea` 或轻量 Markdown 编辑器）
 - 底部操作按钮：「取消」「确认合并」
@@ -566,6 +598,7 @@ UI 技术：MUI `Breadcrumbs` + `Chip` + `IconButton`
 ```
 
 状态：
+
 - **预览模式**：用 `<MarkdownContent>` 渲染简报
 - **编辑模式**：切换到 textarea，用户可修改
 - Loading 状态（preview 请求中 / confirm 请求中）
@@ -595,6 +628,7 @@ UI 技术：MUI `Drawer`（anchor="right"）+ 复用 `<MarkdownContent>`
 线程树面板，展示当前会话下的所有线程结构。
 
 功能：
+
 - 从 `threadTree`（扁平列表）构建树形结构渲染
 - 每个节点显示：标题、状态（活跃/已合并）、消息数
 - 点击节点 → 切换到该线程
@@ -658,40 +692,40 @@ UI：带边框卡片 + 可折叠 + 复用 `<MarkdownContent>`
 
 ## 6. 现有文件改造清单
 
-| 文件路径 | 改动类型 | 说明 |
-|---|---|---|
-| `src/api/core/client.ts` | **修改** | 新增 `patch` 方法 |
-| `src/types/message.ts` | **修改** | `MessageRole` 增加 `3`(system)，`Message` 增加 `threadId`, `type` 字段 |
-| `src/types/index.ts` | **修改** | 导出 thread 相关类型 |
-| `src/stores/message-store.ts` | **重构** | 消息索引键从 `sessionKey` → `threadId`，新增游标分页支持 |
-| `src/stores/index.ts` | **修改** | 导出 `useThreadStore` |
-| `src/pages/chat/hooks/use-message.ts` | **重构** | 切换到 context-messages API，支持游标分页 |
-| `src/pages/chat/hooks/use-chat-orchestrator.ts` | **修改** | 新会话创建后，消息迁移逻辑适配 threadId |
-| `src/pages/chat/index.tsx` | **修改** | 集成面包屑、合并 Drawer；使用 `useThread` |
-| `src/pages/chat/components/message-list.tsx` | **修改** | 支持线程分区视觉 + 向上滚动加载 |
-| `src/pages/chat/components/message-item.tsx` | **修改** | 支持继承消息淡化 + BRIEF 类型分流 |
-| `src/pages/chat/components/index.tsx` | **修改** | 导出新组件 |
-| `src/pages/chat/types.ts` | **修改** | 与 `src/types/message.ts` 对齐 |
-| `src/components/common/app-sidebar.tsx` | **修改** | 增加 Tab 切换逻辑 |
-| `src/hooks/use-chat-session.ts` | **微调** | 切换会话时联动 `useThreadStore.reset()` |
-| `src/hooks/index.ts` | **修改** | 导出 `useThread` |
+| 文件路径                                        | 改动类型 | 说明                                                                   |
+| ----------------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| `src/api/core/client.ts`                        | **修改** | 新增 `patch` 方法                                                      |
+| `src/types/message.ts`                          | **修改** | `MessageRole` 增加 `3`(system)，`Message` 增加 `threadId`, `type` 字段 |
+| `src/types/index.ts`                            | **修改** | 导出 thread 相关类型                                                   |
+| `src/stores/message-store.ts`                   | **重构** | 消息索引键从 `sessionKey` → `threadId`，新增游标分页支持               |
+| `src/stores/index.ts`                           | **修改** | 导出 `useThreadStore`                                                  |
+| `src/pages/chat/hooks/use-message.ts`           | **重构** | 切换到 context-messages API，支持游标分页                              |
+| `src/pages/chat/hooks/use-chat-orchestrator.ts` | **修改** | 新会话创建后，消息迁移逻辑适配 threadId                                |
+| `src/pages/chat/index.tsx`                      | **修改** | 集成面包屑、合并 Drawer；使用 `useThread`                              |
+| `src/pages/chat/components/message-list.tsx`    | **修改** | 支持线程分区视觉 + 向上滚动加载                                        |
+| `src/pages/chat/components/message-item.tsx`    | **修改** | 支持继承消息淡化 + BRIEF 类型分流                                      |
+| `src/pages/chat/components/index.tsx`           | **修改** | 导出新组件                                                             |
+| `src/pages/chat/types.ts`                       | **修改** | 与 `src/types/message.ts` 对齐                                         |
+| `src/components/common/app-sidebar.tsx`         | **修改** | 增加 Tab 切换逻辑                                                      |
+| `src/hooks/use-chat-session.ts`                 | **微调** | 切换会话时联动 `useThreadStore.reset()`                                |
+| `src/hooks/index.ts`                            | **修改** | 导出 `useThread`                                                       |
 
 ---
 
 ## 7. 新建文件清单
 
-| 文件路径 | 层次 | 说明 |
-|---|---|---|
-| `src/types/thread.ts` | Types | 线程/面包屑/合并相关类型 |
-| `src/pages/api/thread.ts` | API | 7 个线程 API 封装 |
-| `src/stores/thread-store.ts` | Store | 线程树 + 面包屑 + 合并状态 |
-| `src/hooks/use-thread.ts` | Hook | 线程操作编排（fork/merge/switch） |
-| `src/pages/chat/components/thread-breadcrumb.tsx` | Component | 面包屑导航栏 |
-| `src/pages/chat/components/merge-drawer.tsx` | Component | 合并简报 Drawer |
-| `src/pages/chat/components/brief-message-item.tsx` | Component | 学习简报消息卡片 |
-| `src/feature/thread-branch-graph/components/thread-tree-panel.tsx` | Component | 线程树面板 |
-| `src/feature/thread-branch-graph/components/thread-tree-node.tsx` | Component | 线程树节点 |
-| `src/feature/thread-branch-graph/index.ts` | Export | 导出入口 |
+| 文件路径                                                           | 层次      | 说明                              |
+| ------------------------------------------------------------------ | --------- | --------------------------------- |
+| `src/types/thread.ts`                                              | Types     | 线程/面包屑/合并相关类型          |
+| `src/pages/api/thread.ts`                                          | API       | 7 个线程 API 封装                 |
+| `src/stores/thread-store.ts`                                       | Store     | 线程树 + 面包屑 + 合并状态        |
+| `src/hooks/use-thread.ts`                                          | Hook      | 线程操作编排（fork/merge/switch） |
+| `src/pages/chat/components/thread-breadcrumb.tsx`                  | Component | 面包屑导航栏                      |
+| `src/pages/chat/components/merge-drawer.tsx`                       | Component | 合并简报 Drawer                   |
+| `src/pages/chat/components/brief-message-item.tsx`                 | Component | 学习简报消息卡片                  |
+| `src/feature/thread-branch-graph/components/thread-tree-panel.tsx` | Component | 线程树面板                        |
+| `src/feature/thread-branch-graph/components/thread-tree-node.tsx`  | Component | 线程树节点                        |
+| `src/feature/thread-branch-graph/index.ts`                         | Export    | 导出入口                          |
 
 ---
 
@@ -751,23 +785,23 @@ UI：带边框卡片 + 可折叠 + 复用 `<MarkdownContent>`
 
 ### 已确认
 
-| # | 问题 | 结论 |
-|---|---|---|
-| 1 | 线程树位置 | Sidebar Tab 切换 |
-| 2 | 消息 API | context-messages 完全替代 |
-| 3 | Fork 触发位置 | 面包屑栏操作按钮 |
-| 4 | 合并 UI | 右侧 Drawer |
+| #   | 问题          | 结论                      |
+| --- | ------------- | ------------------------- |
+| 1   | 线程树位置    | Sidebar Tab 切换          |
+| 2   | 消息 API      | context-messages 完全替代 |
+| 3   | Fork 触发位置 | 面包屑栏操作按钮          |
+| 4   | 合并 UI       | 右侧 Drawer               |
 
 ### 待确认
 
-| # | 问题 | 影响范围 | 建议默认方案 |
-|---|---|---|---|
-| 1 | 线程树是否需要 `@mui/x-tree-view` 依赖，还是手动用缩进实现？ | 依赖管理 + 组件复杂度 | 手动实现（减少依赖），MVP 够用 |
-| 2 | 合并 Drawer 的简报编辑是用纯 `textarea` 还是轻量 Markdown 编辑器？ | 开发量 | MVP 用 `textarea`，后续可升级 |
-| 3 | `POST /chat/` 发送消息接口现在是否已携带 `thread_id`？（现有 ChatRequest 已有该字段） | API 适配 | 已有，无需改动 |
-| 4 | 创建分支时是否需要弹窗让用户输入分支标题？还是自动生成？ | Fork 交互复杂度 | 可选输入：弹出简单 Dialog 带一个输入框，允许留空 |
-| 5 | 继承自父线程的消息（淡化显示）是否允许交互（复制/重新生成）？ | MessageItem 改动量 | 允许复制，不允许重新生成 |
-| 6 | 已合并的线程在线程树中点击后要跳转还是仅查看？ | 切换逻辑 | 可以跳转查看（只读），但不能在已合并线程中发消息 |
+| #   | 问题                                                                                  | 影响范围              | 建议默认方案                                     |
+| --- | ------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------ |
+| 1   | 线程树是否需要 `@mui/x-tree-view` 依赖，还是手动用缩进实现？                          | 依赖管理 + 组件复杂度 | 手动实现（减少依赖），MVP 够用                   |
+| 2   | 合并 Drawer 的简报编辑是用纯 `textarea` 还是轻量 Markdown 编辑器？                    | 开发量                | MVP 用 `textarea`，后续可升级                    |
+| 3   | `POST /chat/` 发送消息接口现在是否已携带 `thread_id`？（现有 ChatRequest 已有该字段） | API 适配              | 已有，无需改动                                   |
+| 4   | 创建分支时是否需要弹窗让用户输入分支标题？还是自动生成？                              | Fork 交互复杂度       | 可选输入：弹出简单 Dialog 带一个输入框，允许留空 |
+| 5   | 继承自父线程的消息（淡化显示）是否允许交互（复制/重新生成）？                         | MessageItem 改动量    | 允许复制，不允许重新生成                         |
+| 6   | 已合并的线程在线程树中点击后要跳转还是仅查看？                                        | 切换逻辑              | 可以跳转查看（只读），但不能在已合并线程中发消息 |
 
 ---
 

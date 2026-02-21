@@ -46,19 +46,19 @@ interface MessageStore {
   activeSessionId: number | null;
 
   actions: {
-    addMessage: (sessionId: number, message: Message) => void;
+    addMessage: (chatSessionId: number, message: Message) => void;
     updateMessageContent: (
-      sessionId: number,
+      chatSessionId: number,
       messageId: number | string,
       content: string,
     ) => void;
     updateMessageStatus: (
-      sessionId: number,
+      chatSessionId: number,
       messageId: number | string,
       status: MessageStatus,
     ) => void;
     replaceMessageId: (
-      sessionId: number,
+      chatSessionId: number,
       tempId: string,
       realId: number,
     ) => void;
@@ -102,12 +102,12 @@ interface MessageStore {
 ### 4.1 流程设计
 
 1. **发起请求**：
-   - 用户在会话 A (`sessionId: 1`) 发送消息。
+   - 用户在会话 A (`chatSessionId: 1`) 发送消息。
    - 创建空的 AI 消息占位符，生成 `aiTempId`，推入 Store (`sessions[1]`)，状态 `streaming`。
 
 2. **建立流连接**：
    - 接收流数据块 (Chunk)。
-   - **重要**：流的处理函数必须闭包捕获当前的 `sessionId` (即 1)，或者流数据中包含 `session_id`。
+   - **重要**：流的处理函数必须闭包捕获当前的 `chatSessionId` (即 1)，或者流数据中包含 `session_id`。
 
 3. **数据写入 (即使 UI 此时在会话 B)**：
    - 流回调触发：调用 `store.updateMessageContent(1, aiTempId, newContent)`。
@@ -174,6 +174,6 @@ const sendMessage = async (content: string) => {
 为了支持你在 LLM 场景下的需求，**必须放弃简单的单列表 Store，转向按 SessionID 索引的 Store 结构**。
 
 - **乐观更新**：先用 `tempId` 占位，后端返回后利用 `replaceMessageId` 修正数据一致性。
-- **流式维持**：流处理器必须绑定 `sessionId`，独立于 UI 组件的挂载/卸载周期，直接操作 Store。
+- **流式维持**：流处理器必须绑定 `chatSessionId`，独立于 UI 组件的挂载/卸载周期，直接操作 Store。
 
 这样，无论用户如何切换会话，后台的流式接收都不会中断，数据也不会错乱。

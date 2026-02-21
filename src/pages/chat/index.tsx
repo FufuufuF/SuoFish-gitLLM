@@ -9,7 +9,9 @@ import { useChatSessionStore } from "@/stores/chat-session-store";
 import { useThread } from "@/hooks/use-thread";
 
 export function ChatPage() {
-  const { sessionId: urlSessionId } = useParams<{ sessionId?: string }>();
+  const { chatSessionId: urlSessionId } = useParams<{
+    chatSessionId?: string;
+  }>();
   const { sendFirstMessage } = useChatOrchestrator();
 
   // ----- Session 状态 -----
@@ -40,7 +42,7 @@ export function ChatPage() {
 
   const [forkDialogOpen, setForkDialogOpen] = useState(false);
 
-  // ----- 同步 URL sessionId → store（用于侧边栏高亮） -----
+  // ----- 同步 URL chatSessionId → store（用于侧边栏高亮） -----
   useLayoutEffect(() => {
     if (isValidUrlSession) {
       setActiveSessionId(parsedUrlSessionId);

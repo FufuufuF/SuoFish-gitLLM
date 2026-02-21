@@ -85,8 +85,8 @@ export function useChatSession() {
 
   // ===== 切换会话 =====
   const switchSession = useCallback(
-    (sessionId: number) => {
-      setActiveSessionId(sessionId);
+    (chatSessionId: number) => {
+      setActiveSessionId(chatSessionId);
     },
     [setActiveSessionId],
   );
@@ -118,8 +118,8 @@ export function useChatSession() {
 
   // ===== 标记会话创建失败 =====
   const markSessionError = useCallback(
-    (sessionId: string | number) => {
-      updateSessionStatus(sessionId, "error");
+    (chatSessionId: string | number) => {
+      updateSessionStatus(chatSessionId, "error");
       setTitleGenerating(false);
     },
     [updateSessionStatus, setTitleGenerating],

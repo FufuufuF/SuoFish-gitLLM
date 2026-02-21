@@ -86,7 +86,7 @@ export function AppSidebar() {
         {/* 分支树：仅在有活跃会话时渲染，Tab 激活时才触发懒加载 */}
         {activeTab === "branches" && typeof activeSessionId === "number" && (
           <Box sx={{ flex: 1, overflow: "auto" }}>
-            <ThreadTreePanel sessionId={activeSessionId} />
+            <ThreadTreePanel chatSessionId={activeSessionId} />
           </Box>
         )}
 

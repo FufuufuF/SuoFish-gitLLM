@@ -13,7 +13,7 @@ export const router: RouteObject[] = [
         element: <Navigate to="/chat" replace />,
       },
       {
-        path: "chat/:sessionId?",
+        path: "chat/:chatSessionId?",
         element: <ChatPage />,
       },
     ],

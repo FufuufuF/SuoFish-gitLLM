@@ -55,9 +55,9 @@ const tree = useMemo(() => buildThreadTree(threads), [threads]);
 
 ```tsx
 // ✅ 组件内部订阅，无 prop drilling
-function ThreadTreePanel({ sessionId }: { sessionId: number }) {
+function ThreadTreePanel({ chatSessionId }: { chatSessionId: number }) {
   const threads = useThreadStore(
-    (state) => state.threadsByChatSessionId[sessionId] ?? [],
+    (state) => state.threadsByChatSessionId[chatSessionId] ?? [],
   );
   const activeThreadId = useChatSessionStore(
     (state) =>
@@ -77,7 +77,7 @@ function ThreadTreePanel({ sessionId }: { sessionId: number }) {
 
 chat-session-store（薄，只管数据）
 └── sessions[].activeThreadId ← 数据存储
-└── updateActiveThreadId(sessionId, threadId) ← 纯同步 mutation（已存在）
+└── updateActiveThreadId(chatSessionId, threadId) ← 纯同步 mutation（已存在）
 
 useThread Hook（厚，管业务逻辑）
 ├── 读：activeThreadId = selector(store) ← 响应式派生值
@@ -144,7 +144,7 @@ const switchThread = async (targetThreadId: number) => {
 
 ```typescript
 // useThread 中的 switchThread 编排逻辑：
-// 1. PATCH /chat_sessions/{sessionId}  ← 更新后端 active_thread
+// 1. PATCH /chat_sessions/{chatSessionId}  ← 更新后端 active_thread
 // 2. GET /threads/{targetThreadId}/context-messages  ← 重新拉取消息列表
 // 3. GET /threads/{targetThreadId}/breadcrumb  ← 更新面包屑
 // 4. setActiveThreadId(targetThreadId)  ← 更新 store
@@ -264,16 +264,16 @@ interface UseThreadTreeReturn {
   error: Error | null;
 }
 
-export function useThreadTree(sessionId: number): UseThreadTreeReturn;
+export function useThreadTree(chatSessionId: number): UseThreadTreeReturn;
 ```
 
 ### 8.1.3 实现要点
 
 ```typescript
-export function useThreadTree(sessionId: number): UseThreadTreeReturn {
+export function useThreadTree(chatSessionId: number): UseThreadTreeReturn {
   // 1. 从 Store 读取扁平列表（响应式）
   const threads = useThreadStore(
-    (state) => state.threadsByChatSessionId[sessionId] ?? [],
+    (state) => state.threadsByChatSessionId[chatSessionId] ?? [],
   );
   const setThreads = useThreadStore((state) => state.setThreads);
 
@@ -285,14 +285,14 @@ export function useThreadTree(sessionId: number): UseThreadTreeReturn {
     if (threads.length > 0) return;
 
     setIsLoading(true);
-    getThreadList({ chat_session_id: sessionId })
+    getThreadList({ chat_session_id: chatSessionId })
       .then((res) => {
         // 3. 写入 Store（数据转换在 Hook 层完成）
-        setThreads(sessionId, res.threads.map(toThread));
+        setThreads(chatSessionId, res.threads.map(toThread));
       })
       .catch((err) => setError(err))
       .finally(() => setIsLoading(false));
-  }, [sessionId]); // sessionId 变化时重新触发
+  }, [chatSessionId]); // chatSessionId 变化时重新触发
 
   // 4. 派生树结构（纯计算，结果稳定时不重算）
   const tree = useMemo(
@@ -307,8 +307,8 @@ export function useThreadTree(sessionId: number): UseThreadTreeReturn {
 ### 8.1.4 组件侧使用
 
 ```tsx
-function ThreadTreePanel({ sessionId }: { sessionId: number }) {
-  const { tree, isLoading, error } = useThreadTree(sessionId);
+function ThreadTreePanel({ chatSessionId }: { chatSessionId: number }) {
+  const { tree, isLoading, error } = useThreadTree(chatSessionId);
 
   if (isLoading) return <ThreadTreeSkeleton />;
   if (error) return <ErrorMessage />;
@@ -318,7 +318,7 @@ function ThreadTreePanel({ sessionId }: { sessionId: number }) {
 }
 ```
 
-> **注**：`setThreads` 是 `thread-store` 需要补充的批量写入 action（将 `Thread[]` 覆盖写入 `threadsByChatSessionId[sessionId]`），区别于现有的单条 `addThread`。
+> **注**：`setThreads` 是 `thread-store` 需要补充的批量写入 action（将 `Thread[]` 覆盖写入 `threadsByChatSessionId[chatSessionId]`），区别于现有的单条 `addThread`。
 
 ---
 
