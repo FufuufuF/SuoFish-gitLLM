@@ -26,19 +26,10 @@ export function ChatPage() {
   const sessionKey = isValidUrlSession ? parsedUrlSessionId : activeSessionId;
   const isNewSessionMode = !sessionKey;
 
-  const { activeThreadId } = useThread();
+  const { activeThreadId, isForkDisabled, forkThread } = useThread();
 
   // ----- Message Hook -----
   const { messages, sendMessage, fetchMessages } = useMessage(activeThreadId);
-
-  // ----- Thread / Fork -----
-  const { forkThread } = useThread();
-
-  // Fork 禁用条件：处于新会话模式 或 临时 session（string）或 thread 尚未创建
-  const isForkDisabled =
-    isNewSessionMode ||
-    typeof activeSessionId === "string" ||
-    activeThreadId === null;
 
   const [forkDialogOpen, setForkDialogOpen] = useState(false);
 
