@@ -3,7 +3,8 @@ export type {
   MessageRole,
   MessageStatus,
   ContextMessage,
-  MessageType,
 } from "./message";
+export { MessageType } from "./message";
 export type { ChatSession, ChatSessionStatus } from "./chat-session";
-export type { Thread, ThreadType, ThreadStatus } from "./thread";
+export type { Thread } from "./thread";
+export { ThreadType, ThreadStatus } from "./thread";

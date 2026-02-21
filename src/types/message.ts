@@ -5,6 +5,7 @@ export type MessageStatus = "sending" | "success" | "error" | "streaming";
 export interface Message {
   id: number | string;
   role: MessageRole;
+  type?: MessageType; // 1=CHAT, 2=BRIEF
   content: string;
   status?: MessageStatus;
   tempId?: string;

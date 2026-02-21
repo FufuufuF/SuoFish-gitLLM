@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Box } from "@mui/material";
 import { ChatInput, MessageList } from "./components";
@@ -7,6 +7,7 @@ import { useMessage } from "../../hooks/use-message";
 import { useChatOrchestrator } from "./hooks/use-chat-orchestrator";
 import { useChatSessionStore } from "@/stores/chat-session-store";
 import { useThread } from "@/hooks/use-thread";
+import { useThreadStore } from "@/stores/thread-store";
 
 export function ChatPage() {
   const { chatSessionId: urlSessionId } = useParams<{
@@ -27,6 +28,22 @@ export function ChatPage() {
   const isNewSessionMode = !sessionKey;
 
   const { activeThreadId, isForkDisabled, forkThread } = useThread();
+
+  // ----- 父线程标题（用于分叉点分隔栏） -----
+  const parentThreadTitle = useMemo(() => {
+    if (!activeSessionId || typeof activeSessionId === "string")
+      return undefined;
+    const threads =
+      useThreadStore.getState().threadsByChatSessionId[
+        activeSessionId as number
+      ] ?? [];
+    const currentThread = threads.find((t) => t.id === activeThreadId);
+    if (!currentThread?.parentThreadId) return undefined;
+    const parentThread = threads.find(
+      (t) => t.id === currentThread.parentThreadId,
+    );
+    return parentThread?.title;
+  }, [activeSessionId, activeThreadId]);
 
   // ----- Message Hook -----
   const { messages, sendMessage, fetchMessages } = useMessage(activeThreadId);
@@ -75,7 +92,11 @@ export function ChatPage() {
       }}
     >
       <Box sx={{ flex: 1, width: "100%", overflowY: "auto", minHeight: 0 }}>
-        <MessageList messages={messages} />
+        <MessageList
+          messages={messages}
+          activeThreadId={activeThreadId}
+          parentThreadTitle={parentThreadTitle}
+        />
       </Box>
       <Box sx={{ width: "80%", flexShrink: 0 }}>
         <ChatInput
