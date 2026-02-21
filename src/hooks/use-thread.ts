@@ -2,7 +2,6 @@ import { useThreadStore } from "@/stores/thread-store";
 import { forkThread as forkThreadApi, type ThreadIn } from "@/api/common";
 import type { Thread } from "@/types";
 import { useChatSessionStore } from "@/stores/chat-session-store";
-import { useShallow } from "zustand/shallow";
 
 const mapThreadInToThread = (thread: ThreadIn): Thread => ({
   id: thread.id,
@@ -18,6 +17,7 @@ const mapThreadInToThread = (thread: ThreadIn): Thread => ({
 export function useThread() {
   // actions 是稳定引用，通过 getState() 获取，不产生订阅
   const { addThread: addThreadStore } = useThreadStore.getState();
+  const { updateActiveThreadId } = useChatSessionStore.getState();
 
   const activeSessionId = useChatSessionStore((state) => state.activeSessionId);
   const activeThreadId = useChatSessionStore
@@ -34,6 +34,7 @@ export function useThread() {
       title: title ?? null,
     });
     addThreadStore(mapThreadInToThread(forkThread.thread));
+    updateActiveThreadId(activeSessionId, forkThread.thread.id);
   };
 
   return {
