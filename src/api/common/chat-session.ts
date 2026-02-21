@@ -1,4 +1,5 @@
 import { apiClient } from "../core/client";
+import type { ThreadIn } from "./thread";
 
 /**
  * 会话列表接口
@@ -53,13 +54,21 @@ export async function getChatSessionList(request: GetChatSessionListRequest) {
 // ===== 请求/响应类型 =====
 
 export interface UpdateChatSessionActiveThreadRequest {
-  chat_session_id: number;
   active_thread_id: number;
+}
+
+export interface UpdateChatSessionActiveThreadResponse {
+  active_thread: ThreadIn;
 }
 
 // ===== API 函数 =====
 
-/**
- * 更新会话
- * 注意：返回原始 API 响应，数据转换由 Hook 层完成
- */
+export async function updateChatSessionActiveThread(
+  chat_session_id: number,
+  active_thread_id: number,
+) {
+  return apiClient.patch<
+    UpdateChatSessionActiveThreadResponse,
+    UpdateChatSessionActiveThreadRequest
+  >(`/chat_sessions/${chat_session_id}`, { active_thread_id });
+}

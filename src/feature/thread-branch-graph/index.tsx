@@ -16,7 +16,8 @@ export interface ThreadTreePanelProps {
 
 export function ThreadTreePanel({ chatSessionId }: ThreadTreePanelProps) {
   // ── 数据层：通过 Hook 加载（懒加载 + 建树 + 状态管理）
-  const { tree, isLoading, error } = useThreadTree(chatSessionId);
+  const { tree, isLoading, error, switchActiveThread } =
+    useThreadTree(chatSessionId);
 
   // ── 活跃 thread（响应式 selector，禁止用 getState() 快照）
   const activeThreadId = useChatSessionStore(
@@ -24,9 +25,6 @@ export function ThreadTreePanel({ chatSessionId }: ThreadTreePanelProps) {
       state.sessions.find((s) => s.id === state.activeSessionId)
         ?.activeThreadId ?? null,
   );
-
-  // ── actions（稳定引用，通过 getState() 获取，不产生订阅）
-  const { updateActiveThreadId } = useChatSessionStore.getState();
 
   // ── 默认展开所有节点
   const allNodeIds = useMemo(() => {
@@ -40,12 +38,10 @@ export function ThreadTreePanel({ chatSessionId }: ThreadTreePanelProps) {
     return ids;
   }, [tree]);
 
-  // ── 切换线程（乐观更新：先更新 store，再调用后端）
+  // ── 切换线程（乐观更新由 hook 管理，失败时 hook 内自动回滚）
   const handleNodeClick = (threadId: number) => {
     if (threadId === activeThreadId) return;
-    // 乐观更新：树节点高亮立刻切换
-    updateActiveThreadId(chatSessionId, threadId);
-    // TODO: 后续接入 switchThread Hook（API 调用 + 消息列表刷新）
+    switchActiveThread(threadId);
   };
 
   // ── 渲染守卫

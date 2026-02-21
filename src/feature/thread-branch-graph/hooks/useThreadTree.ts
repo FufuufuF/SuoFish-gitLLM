@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useThreadStore } from "@/stores/thread-store";
+import { useChatSessionStore } from "@/stores/chat-session-store";
 import { getThreadList, type ThreadIn } from "@/api/common";
+import { updateChatSessionActiveThread } from "@/api/common/chat-session";
 import type { Thread } from "@/types";
 import { buildThreadTree } from "../utils";
 import type { ThreadTreeNode } from "../types";
@@ -26,6 +28,8 @@ interface UseThreadTreeReturn {
   tree: ThreadTreeNode | null;
   isLoading: boolean;
   error: Error | null;
+  /** 切换活跃线程（乐观更新：立刻高亮，失败时自动回滚） */
+  switchActiveThread: (targetThreadId: number) => Promise<void>;
 }
 
 // ─── Hook 实现 ──────────────────────────────────────────────────────────────
@@ -76,5 +80,32 @@ export function useThreadTree(chatSessionId: number): UseThreadTreeReturn {
     [threads],
   );
 
-  return { tree, isLoading, error };
+  // ─── 5. 切换活跃线程（乐观更新 + 失败回滚）
+  const switchActiveThread = useCallback(
+    async (targetThreadId: number) => {
+      const { updateActiveThreadId, sessions, activeSessionId } =
+        useChatSessionStore.getState();
+      if (!activeSessionId || typeof activeSessionId !== "number") return;
+
+      // 在乐观更新前记录旧值，用于失败时回滚
+      const previousThreadId = sessions.find(
+        (s) => s.id === activeSessionId,
+      )?.activeThreadId;
+
+      // 乐观更新：立刻更新 store，树高亮立刻切换
+      updateActiveThreadId(activeSessionId, targetThreadId);
+
+      try {
+        await updateChatSessionActiveThread(chatSessionId, targetThreadId);
+      } catch {
+        // 回滚：恢复到切换前的 activeThreadId
+        if (previousThreadId !== undefined) {
+          updateActiveThreadId(activeSessionId, previousThreadId);
+        }
+      }
+    },
+    [chatSessionId],
+  );
+
+  return { tree, isLoading, error, switchActiveThread };
 }
