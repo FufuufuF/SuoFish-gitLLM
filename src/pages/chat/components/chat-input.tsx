@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Box, IconButton, InputBase, Paper, Tooltip } from "@mui/material";
-import { Send, AttachFile, Mic, CallSplit } from "@mui/icons-material";
+import {
+  Send,
+  AttachFile,
+  Mic,
+  CallSplit,
+  MergeType,
+} from "@mui/icons-material";
 
 interface ChatInputProps {
   /** 发送回调，参数为输入的消息内容 */
@@ -13,6 +19,12 @@ interface ChatInputProps {
   onFork?: () => void;
   /** Fork 按钮禁用（无活跃 thread 时为 true） */
   forkDisabled?: boolean;
+  /** Merge 记忆分支回调 */
+  onMerge: () => void;
+  /** Merge 按钮禁用（主线/已合并/有未合并子分支时为 true） */
+  mergeDisabled?: boolean;
+  /** 整体禁用（合并流程进行中时为 true，禁止发送消息和所有操作） */
+  disabled?: boolean;
   /** 占位符文本 */
   placeholder?: string;
 }
@@ -23,12 +35,16 @@ export function ChatInput({
   onVoice,
   onFork,
   forkDisabled = false,
+  onMerge,
+  mergeDisabled = false,
+  disabled = false,
   placeholder = "输入消息...",
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const canSend = value.trim().length > 0 && !loading;
+  const isDisabled = loading || disabled;
+  const canSend = value.trim().length > 0 && !isDisabled;
 
   const handleSend = async () => {
     if (!canSend) return;
@@ -84,8 +100,8 @@ export function ChatInput({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={loading}
+            placeholder={disabled ? "合并流程进行中..." : placeholder}
+            disabled={isDisabled}
             multiline
             maxRows={8}
             sx={{
@@ -119,7 +135,7 @@ export function ChatInput({
                   <IconButton
                     size="small"
                     onClick={onFork}
-                    disabled={loading || forkDisabled}
+                    disabled={isDisabled || forkDisabled}
                     sx={{ color: "text.secondary" }}
                   >
                     <CallSplit fontSize="small" />
@@ -127,11 +143,30 @@ export function ChatInput({
                 </span>
               </Tooltip>
             )}
+
+            <Tooltip
+              title={
+                mergeDisabled
+                  ? "当前不可合并（主线/已合并/有子分支未合并）"
+                  : "合并到父线程"
+              }
+            >
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onMerge}
+                  disabled={isDisabled || mergeDisabled}
+                  sx={{ color: "text.secondary" }}
+                >
+                  <MergeType fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
             {onAttach && (
               <IconButton
                 size="small"
                 onClick={onAttach}
-                disabled={loading}
+                disabled={isDisabled}
                 sx={{ color: "text.secondary" }}
               >
                 <AttachFile fontSize="small" />
@@ -141,7 +176,7 @@ export function ChatInput({
               <IconButton
                 size="small"
                 onClick={onVoice}
-                disabled={loading}
+                disabled={isDisabled}
                 sx={{ color: "text.secondary" }}
               >
                 <Mic fontSize="small" />

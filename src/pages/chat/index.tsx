@@ -3,9 +3,13 @@ import { useParams } from "react-router-dom";
 import { Box } from "@mui/material";
 import { ChatInput, MessageList } from "./components";
 import { ThreadForkDialog } from "@/components/common/thread-fork-dialog";
+import {
+  ThreadMergeDrawer,
+} from "@/feature/thread-branch-graph/components/thread-merge-drawer";
 import { useMessage } from "../../hooks/use-message";
 import { useChatOrchestrator } from "./hooks/use-chat-orchestrator";
 import { useChatSessionStore } from "@/stores/chat-session-store";
+import { useMergeStore } from "@/stores/merge-store";
 import { useThread } from "@/hooks/use-thread";
 import { useThreadStore } from "@/stores/thread-store";
 
@@ -27,7 +31,14 @@ export function ChatPage() {
   const sessionKey = isValidUrlSession ? parsedUrlSessionId : activeSessionId;
   const isNewSessionMode = !sessionKey;
 
-  const { activeThreadId, isForkDisabled, forkThread } = useThread();
+  const {
+    activeThreadId,
+    isForkDisabled,
+    isMergeDisabled,
+    forkThread,
+    previewMerge,
+    confirmMerge,
+  } = useThread();
 
   // ----- 父线程标题（用于分叉点分隔栏） -----
   const parentThreadTitle = useMemo(() => {
@@ -49,6 +60,26 @@ export function ChatPage() {
   const { messages, sendMessage, fetchMessages } = useMessage(activeThreadId);
 
   const [forkDialogOpen, setForkDialogOpen] = useState(false);
+  const [mergeDrawerOpen, setMergeDrawerOpen] = useState(false);
+
+  // ----- Merge 流程状态 -----
+  const mergePhase = useMergeStore((s) => s.mergePhase);
+  const isMerging = mergePhase !== "idle" && mergePhase !== "success";
+
+  // 自动弹出：进入 previewing 阶段时打开 Drawer
+  useEffect(() => {
+    if (mergePhase === "previewing") {
+      setMergeDrawerOpen(true);
+    }
+  }, [mergePhase]);
+
+  // 自动关闭：成功后关闭 Drawer 并重置
+  useEffect(() => {
+    if (mergePhase === "success") {
+      setMergeDrawerOpen(false);
+      useMergeStore.getState().reset();
+    }
+  }, [mergePhase]);
 
   // ----- 同步 URL chatSessionId → store（用于侧边栏高亮） -----
   useLayoutEffect(() => {
@@ -78,33 +109,64 @@ export function ChatPage() {
     await forkThread(title);
   };
 
+  // ----- Merge -----
+  const handleMerge = async () => {
+    await previewMerge();
+  };
+
   return (
     <Box
       sx={{
         flex: 1,
         display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        p: 4,
+        flexDirection: "row",
         width: "100%",
         height: "100%",
         overflow: "hidden",
       }}
     >
-      <Box sx={{ flex: 1, width: "100%", overflowY: "auto", minHeight: 0 }}>
-        <MessageList
-          messages={messages}
-          activeThreadId={activeThreadId}
-          parentThreadTitle={parentThreadTitle}
-        />
+      {/* 左侧：聊天主区域 */}
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          p: 4,
+          minWidth: 0,
+          height: "100%",
+          overflow: "hidden",
+          transition: "all 0.3s ease",
+        }}
+      >
+        <Box sx={{ flex: 1, width: "100%", overflowY: "auto", minHeight: 0 }}>
+          <MessageList
+            messages={messages}
+            activeThreadId={activeThreadId}
+            parentThreadTitle={parentThreadTitle}
+          />
+        </Box>
+        <Box sx={{ width: "80%", flexShrink: 0 }}>
+          <ChatInput
+            onSend={handleSend}
+            onFork={() => setForkDialogOpen(true)}
+            onMerge={handleMerge}
+            forkDisabled={isForkDisabled}
+            mergeDisabled={isMergeDisabled}
+            disabled={isMerging}
+          />
+        </Box>
       </Box>
-      <Box sx={{ width: "80%", flexShrink: 0 }}>
-        <ChatInput
-          onSend={handleSend}
-          onFork={() => setForkDialogOpen(true)}
-          forkDisabled={isForkDisabled}
-        />
-      </Box>
+
+      {/* 右侧：合并 Drawer */}
+      <ThreadMergeDrawer
+        open={mergeDrawerOpen}
+        onClose={() => {
+          setMergeDrawerOpen(false);
+          useMergeStore.getState().reset();
+        }}
+        onConfirm={confirmMerge}
+      />
 
       <ThreadForkDialog
         open={forkDialogOpen}
