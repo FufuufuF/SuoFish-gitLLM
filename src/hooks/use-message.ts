@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { chat as chatApi, getMessageList } from "@/api/common";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
-import type { Message, MessageRole } from "@/types";
+import type { Message, MessageRole, MessageType } from "@/types";
 import { useMessageStore } from "@/stores/message-store";
 
 /**
@@ -13,6 +13,7 @@ export const mapMessageInToMessage = (msg: MessageIn): Message => ({
   role: msg.role as MessageRole,
   content: msg.content,
   status: "success",
+  type: msg.type as MessageType,
   timestamp: new Date(msg.create_at),
   threadId: msg.thread_id,
 });
