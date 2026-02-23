@@ -13,6 +13,7 @@ import type { Message, MessageRole } from "@/types";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
 import { useChatSessionStore } from "@/stores/chat-session-store";
+import { useThreadListLoader } from "@/hooks/use-thread-list-loader";
 
 const mapThreadInToThread = (thread: ThreadIn) => ({
   id: thread.id,
@@ -48,15 +49,16 @@ export function useThread() {
         ?.activeThreadId ?? null,
   );
 
+  // 响应式订阅 + 自动预加载线程列表
+  const { threads } = useThreadListLoader(
+    typeof activeSessionId === "number" ? activeSessionId : null,
+  );
+
   // ── isForkDisabled ───────────────────────────────────────────────────────
   const isForkDisabled = (() => {
     if (!activeSessionId || !activeThreadId) return true;
     if (typeof activeSessionId === "string") return true;
 
-    const threads =
-      useThreadStore.getState().threadsByChatSessionId[
-        activeSessionId as number
-      ] ?? [];
     const currentThread = threads.find((t) => t.id === activeThreadId);
     if (!currentThread) return true;
     if (currentThread.parentThreadId === null) return false;
@@ -83,10 +85,6 @@ export function useThread() {
     if (!activeSessionId || !activeThreadId) return true;
     if (typeof activeSessionId === "string") return true;
 
-    const threads =
-      useThreadStore.getState().threadsByChatSessionId[
-        activeSessionId as number
-      ] ?? [];
     const currentThread = threads.find((t) => t.id === activeThreadId);
 
     if (!currentThread) return true;
