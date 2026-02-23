@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useThreadStore } from "@/stores/thread-store";
 import { useMessageStore } from "@/stores/message-store";
 import { useMergeStore } from "@/stores/merge-store";
@@ -9,7 +9,7 @@ import {
   type ThreadIn,
 } from "@/api/common";
 import { getMessageList } from "@/api/common";
-import type { Message, MessageRole } from "@/types";
+import { ThreadStatus, type Message, type MessageRole } from "@/types";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
 import { useChatSessionStore } from "@/stores/chat-session-store";
@@ -35,6 +35,8 @@ const mapMessageInToMessage = (msg: MessageIn): Message => ({
   threadId: msg.thread_id,
 });
 
+const EMPTY_MESSAGES: Message[] = [];
+
 export function useThread() {
   // actions 是稳定引用，通过 getState() 获取，不产生订阅
   const { addThread: addThreadStore } = useThreadStore.getState();
@@ -54,51 +56,71 @@ export function useThread() {
     typeof activeSessionId === "number" ? activeSessionId : null,
   );
 
-  // ── isForkDisabled ───────────────────────────────────────────────────────
-  const isForkDisabled = (() => {
-    if (!activeSessionId || !activeThreadId) return true;
-    if (typeof activeSessionId === "string") return true;
+  const activeThreadMessages = useMessageStore((state) =>
+    activeThreadId ? state.messagesByThread[activeThreadId] ?? EMPTY_MESSAGES : EMPTY_MESSAGES,
+  );
 
-    const currentThread = threads.find((t) => t.id === activeThreadId);
-    if (!currentThread) return true;
-    if (currentThread.parentThreadId === null) return false;
+  const { isForkDisabled, isMergeDisabled, isThreadStatusNormal } =
+    useMemo(() => {
+      const current =
+        threads.find((thread) => thread.id === activeThreadId) ?? null;
 
-    const messages =
-      useMessageStore.getState().messagesByThread[activeThreadId] ?? [];
-    if (messages.length === 0) return true;
+      if (!activeSessionId || !activeThreadId || typeof activeSessionId === "string") {
+        return {
+          isForkDisabled: true,
+          isMergeDisabled: true,
+          isThreadStatusNormal: false,
+        };
+      }
 
-    const forkPoint = currentThread.forkFromMessageId ?? 0;
-    return !messages.some(
-      (msg) => typeof msg.id === "number" && msg.id > forkPoint,
-    );
-  })();
+      if (!current) {
+        return {
+          isForkDisabled: true,
+          isMergeDisabled: true,
+          isThreadStatusNormal: false,
+        };
+      }
 
-  // ── isMergeDisabled ──────────────────────────────────────────────────────
-  // 规则：
-  //   1. 无 activeSessionId / activeThreadId → 禁用
-  //   2. 临时 session → 禁用
-  //   3. 主线（parentThreadId === null）→ 禁用
-  //   4. 已合并（status === 2）→ 禁用
-  //   5. 有未合并子分支 → 禁用（逐级合并）
-  //   6. threads 尚未加载（空数组）→ 保守禁用
-  const isMergeDisabled = (() => {
-    if (!activeSessionId || !activeThreadId) return true;
-    if (typeof activeSessionId === "string") return true;
+      const isThreadStatusNormal = current.status === ThreadStatus.NORMAL;
+      console.log("isThreadStatusNormal", isThreadStatusNormal, current.status);
 
-    const currentThread = threads.find((t) => t.id === activeThreadId);
+      let isForkDisabled = true;
+      if (current.parentThreadId === null) {
+        isForkDisabled = false;
+      } else if (activeThreadMessages.length > 0) {
+        const forkPoint = current.forkFromMessageId ?? 0;
+        isForkDisabled = !activeThreadMessages.some(
+          (msg) => typeof msg.id === "number" && msg.id > forkPoint,
+        );
+      }
 
-    if (!currentThread) return true;
-    if (currentThread.parentThreadId === null) return true; // 主线
-    if (currentThread.status === 2 /* MERGED */) return true;
+      // 规则：
+      //   1. 无 activeSessionId / activeThreadId → 禁用
+      //   2. 临时 session → 禁用
+      //   3. 主线（parentThreadId === null）→ 禁用
+      //   4. 已合并（status === MERGED）→ 禁用
+      //   5. 有未合并子分支 → 禁用（逐级合并）
+      //   6. threads 尚未加载（空数组）→ 保守禁用
+      let isMergeDisabled = false;
+      if (current.parentThreadId === null) {
+        isMergeDisabled = true;
+      } else if (current.status === ThreadStatus.MERGED) {
+        isMergeDisabled = true;
+      } else {
+        const hasUnmergedChildren = threads.some(
+          (t) => t.parentThreadId === activeThreadId && t.status !== ThreadStatus.MERGED,
+        );
+        if (hasUnmergedChildren) {
+          isMergeDisabled = true;
+        }
+      }
 
-    // 逐级约束：有未合并子分支则禁用
-    const hasUnmergedChildren = threads.some(
-      (t) => t.parentThreadId === activeThreadId && t.status !== 2,
-    );
-    if (hasUnmergedChildren) return true;
-
-    return false;
-  })();
+      return {
+        isForkDisabled,
+        isMergeDisabled,
+        isThreadStatusNormal,
+      };
+    }, [activeSessionId, activeThreadId, activeThreadMessages, threads]);
 
   // ── forkThread ───────────────────────────────────────────────────────────
   const forkThread = async (title: string = "Default") => {
@@ -176,8 +198,9 @@ export function useThread() {
   return {
     activeThreadId,
     isForkDisabled,
-    forkThread,
     isMergeDisabled,
+    isThreadStatusNormal,
+    forkThread,
     previewMerge,
     confirmMerge,
   };

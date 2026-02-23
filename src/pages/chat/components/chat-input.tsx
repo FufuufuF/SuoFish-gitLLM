@@ -7,6 +7,7 @@ import {
   CallSplit,
   MergeType,
 } from "@mui/icons-material";
+import { getChatInputPlaceholder } from "../utils/get-chat-input-placeholder";
 
 interface ChatInputProps {
   /** 发送回调，参数为输入的消息内容 */
@@ -24,7 +25,9 @@ interface ChatInputProps {
   /** Merge 按钮禁用（主线/已合并/有未合并子分支时为 true） */
   mergeDisabled?: boolean;
   /** 整体禁用（合并流程进行中时为 true，禁止发送消息和所有操作） */
-  disabled?: boolean;
+  isMerging?: boolean;
+    /** 已经合并（线程状态非正常时为 true） */
+    isMerged?: boolean;
   /** 占位符文本 */
   placeholder?: string;
 }
@@ -37,13 +40,13 @@ export function ChatInput({
   forkDisabled = false,
   onMerge,
   mergeDisabled = false,
-  disabled = false,
-  placeholder = "输入消息...",
+  isMerging = false,
+  isMerged = false,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isDisabled = loading || disabled;
+  const isDisabled = loading || isMerging || isMerged;
   const canSend = value.trim().length > 0 && !isDisabled;
 
   const handleSend = async () => {
@@ -100,7 +103,7 @@ export function ChatInput({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={disabled ? "合并流程进行中..." : placeholder}
+            placeholder={getChatInputPlaceholder(isMerging, isMerged)}
             disabled={isDisabled}
             multiline
             maxRows={8}

@@ -35,6 +35,7 @@ export function ChatPage() {
     activeThreadId,
     isForkDisabled,
     isMergeDisabled,
+    isThreadStatusNormal,
     forkThread,
     previewMerge,
     confirmMerge,
@@ -153,7 +154,8 @@ export function ChatPage() {
             onMerge={handleMerge}
             forkDisabled={isForkDisabled}
             mergeDisabled={isMergeDisabled}
-            disabled={isMerging}
+            isMerging={isMerging}
+            isMerged={!isThreadStatusNormal}
           />
         </Box>
       </Box>
