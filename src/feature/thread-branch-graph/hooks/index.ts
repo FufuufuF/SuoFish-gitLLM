@@ -1,1 +1,1 @@
-export { useThreadTree } from "./useThreadTree";
+export { useThreadTree } from "./use-thread-tree";
