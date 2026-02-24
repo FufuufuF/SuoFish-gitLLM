@@ -69,7 +69,7 @@ export function useThread() {
         return {
           isForkDisabled: true,
           isMergeDisabled: true,
-          isThreadStatusNormal: false,
+          isThreadStatusNormal: true,
         };
       }
 

@@ -39,7 +39,6 @@ export function MessageItem({
   const isAI = message.role === 2;
 
   // BRIEF 消息走专属组件
-  console.log("MessageItem render", { id: message.id, type: message.type, content: message.content });
   if (message.type === MessageType.BRIEF) {
     return <BriefMessageItem message={message} onCopy={onCopy} />;
   }
