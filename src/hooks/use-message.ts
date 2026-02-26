@@ -5,6 +5,8 @@ import { PageDirection } from "@/api/core/types";
 import type { Message, MessageRole, MessageType } from "@/types";
 import { useMessageStore } from "@/stores/message-store";
 
+const EMPTY_MESSAGES_LIST: Message[] = [];
+
 /**
  * 将 API 层的 MessageIn 转换为业务层的 Message
  */
@@ -24,15 +26,16 @@ export const mapMessageInToMessage = (msg: MessageIn): Message => ({
  */
 export function useMessage(threadId?: string | number | null) {
   const {
-    getMessages,
     addMessage,
     prependMessages,
     setMessages,
     updateMessageStatus,
-    updateMessageId,
+    confirmMessage,
   } = useMessageStore.getState();
 
-  const messages = threadId ? getMessages(threadId) : [];
+  const messages = useMessageStore(
+    (state) => (threadId ? state.messagesByThread[threadId] ?? EMPTY_MESSAGES_LIST : EMPTY_MESSAGES_LIST)
+  )
 
   /**
    * 加载消息（游标分页）
@@ -104,9 +107,8 @@ export function useMessage(threadId?: string | number | null) {
         const humanMsg = mapMessageInToMessage(response.human_message);
         const aiMsg = mapMessageInToMessage(response.ai_message);
 
-        // 替换临时 ID，标记成功
-        updateMessageId(threadId, tempMsgId, Number(humanMsg.id));
-        updateMessageStatus(threadId, Number(humanMsg.id), "success");
+        // 原子替换临时 ID 并标记成功
+        confirmMessage(threadId, tempMsgId, Number(humanMsg.id));
 
         // 添加 AI 回复
         addMessage(threadId, aiMsg);
@@ -115,7 +117,7 @@ export function useMessage(threadId?: string | number | null) {
         updateMessageStatus(threadId, tempMsgId, "error");
       }
     },
-    [threadId, addMessage, updateMessageId, updateMessageStatus],
+    [threadId, addMessage, confirmMessage, updateMessageStatus],
   );
 
   return {

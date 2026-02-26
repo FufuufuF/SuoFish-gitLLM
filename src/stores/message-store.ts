@@ -5,9 +5,6 @@ export interface MessageStore {
   /** 按 threadId 索引的消息列表 */
   messagesByThread: Record<string | number, Message[]>;
 
-  /** 获取指定 thread 的消息列表 */
-  getMessages: (threadId: string | number) => Message[];
-
   /** 追加单条消息到指定 thread 尾部（用于发送/接收消息） */
   addMessage: (threadId: string | number, message: Message) => void;
 
@@ -31,6 +28,13 @@ export interface MessageStore {
     realId: number,
   ) => void;
 
+  /** 原子确认消息：一次性替换临时 ID 并标记为 success（替代 updateMessageId + updateMessageStatus 两步调用） */
+  confirmMessage: (
+    threadId: string | number,
+    tempId: string,
+    realId: number,
+  ) => void;
+
   /**
     * 将消息从临时 threadId（string | number）迁移到真实 threadId（number）
    * 用于新会话第一条消息发送成功后的乐观更新确认
@@ -44,12 +48,8 @@ export interface MessageStore {
   clearThreadMessages: (threadId: string | number) => void;
 }
 
-export const useMessageStore = create<MessageStore>((set, get) => ({
+export const useMessageStore = create<MessageStore>((set) => ({
   messagesByThread: {},
-
-  getMessages: (threadId) => {
-    return get().messagesByThread[threadId] ?? [];
-  },
 
   addMessage: (threadId, message) =>
     set((state) => ({
@@ -99,6 +99,22 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
           [threadId]: messages.map((msg) =>
             msg.tempId === tempId || msg.id === tempId
               ? { ...msg, id: realId }
+              : msg,
+          ),
+        },
+      };
+    }),
+
+  confirmMessage: (threadId, tempId, realId) =>
+    set((state) => {
+      const messages = state.messagesByThread[threadId];
+      if (!messages) return state;
+      return {
+        messagesByThread: {
+          ...state.messagesByThread,
+          [threadId]: messages.map((msg) =>
+            msg.tempId === tempId || msg.id === tempId
+              ? { ...msg, id: realId, status: "success" as const }
               : msg,
           ),
         },

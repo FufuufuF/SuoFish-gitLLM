@@ -26,7 +26,7 @@ export function useChatOrchestrator() {
   const { updateActiveThreadId } = useChatSessionStore.getState();
   const {
     addMessage,
-    updateMessageId,
+    confirmMessage,
     updateMessageStatus,
     migrateThreadMessages,
   } = useMessageStore();
@@ -68,8 +68,7 @@ export function useChatOrchestrator() {
       // 5. 更新消息状态（在迁移前完成，确保数据完整）
       const humanMsg = mapMessageInToMessage(response.human_message);
       const aiMsg = mapMessageInToMessage(response.ai_message);
-      updateMessageId(optimisticThreadId, tempMsgId, Number(humanMsg.id));
-      updateMessageStatus(optimisticThreadId, Number(humanMsg.id), "success");
+      confirmMessage(optimisticThreadId, tempMsgId, Number(humanMsg.id));
       addMessage(optimisticThreadId, aiMsg);
 
       // 6. 将消息从临时 threadId 迁移到真实 threadId
