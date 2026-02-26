@@ -32,9 +32,9 @@ export function MessageList({
   // 找到第一条属于当前线程的消息索引
   // 必须在 early return 前调用，保证 hooks 调用顺序稳定
   const firstCurrentIdx = useMemo(() => {
-    if (activeThreadId == null || messages.length === 0) return -1;
+    if (activeThreadId === null || messages.length === 0) return -1;
     return messages.findIndex(
-      (msg) => msg.threadId != null && msg.threadId === activeThreadId,
+      (msg) => msg.threadId !== null && msg.threadId === activeThreadId,
     );
   }, [messages, activeThreadId]);
 
@@ -46,7 +46,11 @@ export function MessageList({
   //   firstCurrentIdx === -1 → 列表中全部是祖先消息，分隔栏置于列表末尾
   // 已有分支消息：
   //   firstCurrentIdx > 0  → 边界前为祖先，分隔栏插在边界处
-  const isAllAncestor = activeThreadId != null && firstCurrentIdx === -1;
+  const isAllAncestor = activeThreadId !== null && firstCurrentIdx === -1;
+  console.log("firstCurrentIdx", firstCurrentIdx, "activeThreadId", activeThreadId);
+  if (firstCurrentIdx === -1 ) {
+    console.log(messages)
+}
 
   const showDivider = isAllAncestor || firstCurrentIdx > 0;
 

@@ -47,7 +47,9 @@ export function useThread() {
   // 响应式订阅 activeThreadId（selector，禁止用 getState() 快照）
   const activeThreadId = useChatSessionStore(
     (state) =>
-      state.sessions.find((s) => s.id === state.activeSessionId)
+      state.sessions.find(
+        (s) => s.id === state.activeSessionId || s.tempId === state.activeSessionId,
+      )
         ?.activeThreadId ?? null,
   );
 
@@ -82,7 +84,6 @@ export function useThread() {
       }
 
       const isThreadStatusNormal = current.status === ThreadStatus.NORMAL;
-      console.log("isThreadStatusNormal", isThreadStatusNormal, current.status);
 
       let isForkDisabled = true;
       if (current.parentThreadId === null) {

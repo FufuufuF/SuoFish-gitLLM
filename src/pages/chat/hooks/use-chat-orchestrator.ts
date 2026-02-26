@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { chat as chatApi } from "@/api/common";
 import { useChatSession } from "@/hooks";
+import { useChatSessionStore } from "@/stores/chat-session-store";
 import { useMessageStore } from "@/stores/message-store";
 import { mapMessageInToMessage } from "../../../hooks/use-message";
 
@@ -17,8 +18,12 @@ import { mapMessageInToMessage } from "../../../hooks/use-message";
  */
 export function useChatOrchestrator() {
   const navigate = useNavigate();
-  const { createSession, confirmSessionCreation, markSessionError } =
-    useChatSession();
+  const {
+    createSession,
+    confirmSessionCreation,
+    markSessionError,
+  } = useChatSession();
+  const { updateActiveThreadId } = useChatSessionStore.getState();
   const {
     addMessage,
     updateMessageId,
@@ -34,18 +39,22 @@ export function useChatOrchestrator() {
     // 1. 创建 session（乐观更新，同时设置 activeSessionId = tempSessionId）
     const tempSessionId = createSession();
 
-    // 2. 生成临时 threadId（在后端创建 thread 之前的占位 key）
-    const tempThreadId = crypto.randomUUID();
+    // 2. 生成临时 threadId（number 类型，保持与 activeThreadId 一致）
+    const optimisticThreadId = -(Date.now() + Math.floor(Math.random() * 1000));
     const tempMsgId = crypto.randomUUID();
 
+    // 2.1 将当前会话 activeThreadId 指向临时 threadId，供页面统一按 activeThreadId 渲染
+    updateActiveThreadId(tempSessionId, optimisticThreadId);
+
     // 3. 乐观添加用户消息，key 为临时 threadId
-    addMessage(tempThreadId, {
+    addMessage(optimisticThreadId, {
       id: tempMsgId,
       tempId: tempMsgId,
       role: 1,
       content,
       status: "sending",
       timestamp: new Date(),
+      threadId: optimisticThreadId,
     });
 
     try {
@@ -59,12 +68,12 @@ export function useChatOrchestrator() {
       // 5. 更新消息状态（在迁移前完成，确保数据完整）
       const humanMsg = mapMessageInToMessage(response.human_message);
       const aiMsg = mapMessageInToMessage(response.ai_message);
-      updateMessageId(tempThreadId, tempMsgId, Number(humanMsg.id));
-      updateMessageStatus(tempThreadId, Number(humanMsg.id), "success");
-      addMessage(tempThreadId, aiMsg);
+      updateMessageId(optimisticThreadId, tempMsgId, Number(humanMsg.id));
+      updateMessageStatus(optimisticThreadId, Number(humanMsg.id), "success");
+      addMessage(optimisticThreadId, aiMsg);
 
       // 6. 将消息从临时 threadId 迁移到真实 threadId
-      migrateThreadMessages(tempThreadId, response.thread_id);
+      migrateThreadMessages(optimisticThreadId, response.thread_id);
 
       // 7. 确认 session 创建（更新 id + activeThreadId + status）
       confirmSessionCreation(
@@ -77,7 +86,7 @@ export function useChatOrchestrator() {
       navigate(`/chat/${response.chat_session_id}`, { replace: true });
     } catch (error) {
       console.error("Failed to create session and send message:", error);
-      updateMessageStatus(tempThreadId, tempMsgId, "error");
+      updateMessageStatus(optimisticThreadId, tempMsgId, "error");
       markSessionError(tempSessionId);
     }
 

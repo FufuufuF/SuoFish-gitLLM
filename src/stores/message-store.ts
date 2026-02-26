@@ -32,10 +32,13 @@ export interface MessageStore {
   ) => void;
 
   /**
-   * 将消息从临时 threadId（UUID）迁移到真实 threadId（number）
+    * 将消息从临时 threadId（string | number）迁移到真实 threadId（number）
    * 用于新会话第一条消息发送成功后的乐观更新确认
    */
-  migrateThreadMessages: (tempThreadId: string, realThreadId: number) => void;
+  migrateThreadMessages: (
+    tempThreadId: string | number,
+    realThreadId: number,
+  ) => void;
 
   /** 清除指定 thread 的消息缓存 */
   clearThreadMessages: (threadId: string | number) => void;
