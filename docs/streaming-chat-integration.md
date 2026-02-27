@@ -848,7 +848,7 @@ useEffect(() => {
 ---
 
 ## 7. 文件修改清单
-
+a
 | 文件路径 | 改动类型 | 说明 |
 | --- | --- | --- |
 | `src/api/common/chat.ts` | **修改** | 新增 `StreamEventType`、`StreamEvent`、`chatStream()` |
