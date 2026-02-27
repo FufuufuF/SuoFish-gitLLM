@@ -20,3 +20,14 @@ export interface PageResponse {
   next_cursor: string;
   has_more: boolean;
 }
+
+// SSE类型
+export interface SseEvent<T> {
+    event: string;
+    data: T;
+}
+
+export interface PostSseOptions {
+    signal?: AbortSignal;
+    headers?: HeadersInit;
+}

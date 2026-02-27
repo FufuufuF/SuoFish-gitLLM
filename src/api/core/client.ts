@@ -1,5 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 import { API_CONFIG } from "./config";
+import type { PostSseOptions, SseEvent } from "./types";
+import { parseSseChunk } from "./utils";
 
 export class ApiClient {
   private baseUrl: string;
@@ -33,7 +35,7 @@ export class ApiClient {
     );
   }
 
-  public get<T>(apiPath: string, params?: any): Promise<T> {
+  public get<T>(apiPath: string, params?: unknown): Promise<T> {
     return this.axios.get(apiPath, { params });
   }
 
@@ -43,6 +45,72 @@ export class ApiClient {
 
   public patch<T, D>(apiPath: string, data: D): Promise<T> {
     return this.axios.patch(apiPath, data);
+  }
+
+  public async *postSSE<T, D>(
+    apiPath: string,
+    data: D,
+    options?: PostSseOptions,
+  ): AsyncGenerator<SseEvent<T>, void, unknown> {
+    const defaultHeaders: Record<string, string> = {};
+    const axiosHeaders = this.axios.defaults.headers;
+    const commonHeaders = axiosHeaders?.common as
+      | Record<string, string>
+      | undefined;
+    if (commonHeaders) {
+      Object.assign(defaultHeaders, commonHeaders);
+    }
+    if (!defaultHeaders["Content-Type"]) {
+      defaultHeaders["Content-Type"] = "application/json";
+    }
+
+    const response = await fetch(`${this.baseUrl}${apiPath}`, {
+      method: "POST",
+      body: JSON.stringify(data),
+      credentials: API_CONFIG.withCredentials ? "include" : "same-origin",
+      signal: options?.signal,
+      headers: {
+        ...defaultHeaders,
+        ...(options?.headers ?? {}),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`SSE request failed: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) {
+          if (buffer.trim()) {
+            const maybeEvent = parseSseChunk<T>(buffer);
+            if (maybeEvent) {
+              yield maybeEvent;
+            }
+          }
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+
+        let separatorIndex = buffer.indexOf("\n\n");
+        while (separatorIndex !== -1) {
+          const rawEvent = buffer.slice(0, separatorIndex);
+          buffer = buffer.slice(separatorIndex + 2);
+          const maybeEvent = parseSseChunk<T>(rawEvent);
+          if (maybeEvent) {
+            yield maybeEvent;
+          }
+          separatorIndex = buffer.indexOf("\n\n");
+        }
+      }
+    } finally {
+      reader?.releaseLock();
+    }
   }
 }
 
