@@ -3,6 +3,7 @@ import { chat as chatApi } from "@/api/common";
 import { useChatSession } from "@/hooks";
 import { useChatSessionStore } from "@/stores/chat-session-store";
 import { useMessageStore } from "@/stores/message-store";
+import { MessageRoleEnum, MessageStatusEnum } from "@/types";
 import { mapMessageInToMessage } from "../../../hooks/use-message";
 
 /**
@@ -50,9 +51,9 @@ export function useChatOrchestrator() {
     addMessage(optimisticThreadId, {
       id: tempMsgId,
       tempId: tempMsgId,
-      role: 1,
+      role: MessageRoleEnum.USER,
       content,
-      status: "sending",
+      status: MessageStatusEnum.SENDING,
       timestamp: new Date(),
       threadId: optimisticThreadId,
     });
@@ -85,7 +86,11 @@ export function useChatOrchestrator() {
       navigate(`/chat/${response.chat_session_id}`, { replace: true });
     } catch (error) {
       console.error("Failed to create session and send message:", error);
-      updateMessageStatus(optimisticThreadId, tempMsgId, "error");
+      updateMessageStatus(
+        optimisticThreadId,
+        tempMsgId,
+        MessageStatusEnum.ERROR,
+      );
       markSessionError(tempSessionId);
     }
 

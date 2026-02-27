@@ -1,4 +1,4 @@
-import type { Message, MessageStatus } from "@/types";
+import { MessageStatusEnum, type Message } from "@/types";
 import { create } from "zustand";
 
 export interface MessageStore {
@@ -18,7 +18,7 @@ export interface MessageStore {
   updateMessageStatus: (
     threadId: string | number,
     id: number | string,
-    status: MessageStatus,
+    status: MessageStatusEnum,
   ) => void;
 
   /** 用真实 ID 替换临时消息 ID */
@@ -114,7 +114,7 @@ export const useMessageStore = create<MessageStore>((set) => ({
           ...state.messagesByThread,
           [threadId]: messages.map((msg) =>
             msg.tempId === tempId || msg.id === tempId
-              ? { ...msg, id: realId, status: "success" as const }
+              ? { ...msg, id: realId, status: MessageStatusEnum.SUCCESS }
               : msg,
           ),
         },

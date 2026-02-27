@@ -2,7 +2,12 @@ import { useCallback } from "react";
 import { chat as chatApi, getMessageList } from "@/api/common";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
-import type { Message, MessageRole, MessageType } from "@/types";
+import {
+  MessageRoleEnum,
+  MessageStatusEnum,
+  type Message,
+  MessageType,
+} from "@/types";
 import { useMessageStore } from "@/stores/message-store";
 
 const EMPTY_MESSAGES_LIST: Message[] = [];
@@ -12,9 +17,9 @@ const EMPTY_MESSAGES_LIST: Message[] = [];
  */
 export const mapMessageInToMessage = (msg: MessageIn): Message => ({
   id: msg.id,
-  role: msg.role as MessageRole,
+  role: msg.role as MessageRoleEnum,
   content: msg.content,
-  status: "success",
+  status: MessageStatusEnum.SUCCESS,
   type: msg.type as MessageType,
   timestamp: new Date(msg.create_at),
   threadId: msg.thread_id,
@@ -89,9 +94,9 @@ export function useMessage(threadId?: string | number | null) {
       addMessage(threadId, {
         id: tempMsgId,
         tempId: tempMsgId,
-        role: 1,
+        role: MessageRoleEnum.USER,
         content,
-        status: "sending",
+        status: MessageStatusEnum.SENDING,
         timestamp: new Date(),
         threadId,
       });
@@ -114,7 +119,7 @@ export function useMessage(threadId?: string | number | null) {
         addMessage(threadId, aiMsg);
       } catch (error) {
         console.error("Failed to send message:", error);
-        updateMessageStatus(threadId, tempMsgId, "error");
+        updateMessageStatus(threadId, tempMsgId, MessageStatusEnum.ERROR);
       }
     },
     [threadId, addMessage, confirmMessage, updateMessageStatus],

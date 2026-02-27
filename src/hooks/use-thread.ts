@@ -9,7 +9,12 @@ import {
   type ThreadIn,
 } from "@/api/common";
 import { getMessageList } from "@/api/common";
-import { ThreadStatus, type Message, type MessageRole } from "@/types";
+import {
+  MessageRoleEnum,
+  MessageStatusEnum,
+  ThreadStatus,
+  type Message,
+} from "@/types";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
 import { useChatSessionStore } from "@/stores/chat-session-store";
@@ -28,9 +33,9 @@ const mapThreadInToThread = (thread: ThreadIn) => ({
 
 const mapMessageInToMessage = (msg: MessageIn): Message => ({
   id: msg.id,
-  role: msg.role as MessageRole,
+  role: msg.role as MessageRoleEnum,
   content: msg.content,
-  status: "success",
+  status: MessageStatusEnum.SUCCESS,
   timestamp: new Date(msg.create_at),
   threadId: msg.thread_id,
 });
