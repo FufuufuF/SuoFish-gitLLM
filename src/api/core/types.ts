@@ -23,7 +23,7 @@ export interface PageResponse {
 
 // SSE类型
 export interface SseEvent<T> {
-    event: string;
+    type: string;
     data: T;
 }
 

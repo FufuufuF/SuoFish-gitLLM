@@ -47,11 +47,11 @@ export class ApiClient {
     return this.axios.patch(apiPath, data);
   }
 
-  public async *postSSE<T, D>(
+  public async *postSSE<T extends SseEvent<unknown>, D>(
     apiPath: string,
-    data: D,
+    request: D,
     options?: PostSseOptions,
-  ): AsyncGenerator<SseEvent<T>, void, unknown> {
+  ): AsyncGenerator<T, void, unknown> {
     const defaultHeaders: Record<string, string> = {};
     const axiosHeaders = this.axios.defaults.headers;
     const commonHeaders = axiosHeaders?.common as
@@ -66,7 +66,7 @@ export class ApiClient {
 
     const response = await fetch(`${this.baseUrl}${apiPath}`, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify(request),
       credentials: API_CONFIG.withCredentials ? "include" : "same-origin",
       signal: options?.signal,
       headers: {

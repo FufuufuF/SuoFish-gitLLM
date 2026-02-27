@@ -1,6 +1,8 @@
 import type { SseEvent } from "./types";
 
-export function parseSseChunk<T>(chunk: string): SseEvent<T> | null {
+export function parseSseChunk<TEvent extends SseEvent<unknown>>(
+    chunk: string,
+): TEvent | null {
     const lines = chunk.split("\n");
     let eventName = "message";
     const dataLines: string[] = [];
@@ -22,15 +24,15 @@ export function parseSseChunk<T>(chunk: string): SseEvent<T> | null {
 
     const rawData = dataLines.join("\n");
 
-    let parsedData: T;
+    let parsedData: TEvent["data"];
     try {
-        parsedData = JSON.parse(rawData) as T;
+        parsedData = JSON.parse(rawData) as TEvent["data"];
     } catch {
-        parsedData = rawData as T;
+        parsedData = rawData as TEvent["data"];
     }
 
     return {
-        event: eventName,
+        type: eventName,
         data: parsedData,
-    }
+    } as TEvent;
 }
