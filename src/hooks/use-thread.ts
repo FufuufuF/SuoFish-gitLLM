@@ -11,9 +11,10 @@ import {
 import { getMessageList } from "@/api/common";
 import {
   MessageRoleEnum,
-  MessageStatusEnum,
   ThreadStatus,
   type Message,
+  mapBackendMessageStatusToUiStatus,
+  mapBackendMessageTypeToUiType,
 } from "@/types";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
@@ -35,7 +36,8 @@ const mapMessageInToMessage = (msg: MessageIn): Message => ({
   id: msg.id,
   role: msg.role as MessageRoleEnum,
   content: msg.content,
-  status: MessageStatusEnum.SUCCESS,
+  status: mapBackendMessageStatusToUiStatus(msg.status),
+  type: mapBackendMessageTypeToUiType(msg.type),
   timestamp: new Date(msg.create_at),
   threadId: msg.thread_id,
 });

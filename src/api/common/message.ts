@@ -5,9 +5,22 @@ export interface MessageIn {
   id: number;
   role: number;
   type: number;
+  status: number;
   content: string;
   thread_id: number;
   create_at: Date;
+}
+
+// 消息类型
+export enum MessageType {
+  CHAT = 1,
+  BRIEF = 2,
+}
+
+export enum MessageStatus {
+  NORMAL = 1,
+  ERROR = 2,
+  STOP_GENERATION = 3,
 }
 
 export interface MessageRequest extends PageRequest {

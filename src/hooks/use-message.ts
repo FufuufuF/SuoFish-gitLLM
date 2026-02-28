@@ -6,7 +6,8 @@ import {
   MessageRoleEnum,
   MessageStatusEnum,
   type Message,
-  MessageType,
+  mapBackendMessageStatusToUiStatus,
+  mapBackendMessageTypeToUiType,
 } from "@/types";
 import { useMessageStore } from "@/stores/message-store";
 
@@ -19,8 +20,8 @@ export const mapMessageInToMessage = (msg: MessageIn): Message => ({
   id: msg.id,
   role: msg.role as MessageRoleEnum,
   content: msg.content,
-  status: MessageStatusEnum.SUCCESS,
-  type: msg.type as MessageType,
+  status: mapBackendMessageStatusToUiStatus(msg.status),
+  type: mapBackendMessageTypeToUiType(msg.type),
   timestamp: new Date(msg.create_at),
   threadId: msg.thread_id,
 });
