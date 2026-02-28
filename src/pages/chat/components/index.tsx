@@ -1,5 +1,6 @@
 export { ChatInput } from "./chat-input";
 export { MessageItem } from "./message-item";
+export { MessageActions } from "./message-actions";
 export { MessageList } from "./message-list";
 export { MarkdownContent } from "./markdown-content";
 export { ThreadForkDivider } from "./thread-fork-divider";

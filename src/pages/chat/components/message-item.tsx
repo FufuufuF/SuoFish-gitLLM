@@ -1,16 +1,15 @@
 import { memo, useState } from "react";
-import { Box, IconButton, Avatar } from "@mui/material";
+import { Box, IconButton, Avatar, Typography, CircularProgress } from "@mui/material";
 import {
   ContentCopy,
   Check,
-  Refresh,
-  ThumbUp,
-  ThumbDown,
+  ErrorOutline,
 } from "@mui/icons-material";
 import { MarkdownContent } from "./markdown-content";
+import { MessageActions } from "./message-actions";
 import { BriefMessageItem } from "./brief-message-item";
 import type { Message } from "@/types";
-import { MessageRoleEnum, MessageType } from "@/types";
+import { MessageRoleEnum, MessageStatusEnum, MessageType } from "@/types";
 import styles from "./index.module.less";
 interface MessageItemProps {
   message: Message;
@@ -97,49 +96,38 @@ export const MessageItem = memo(function MessageItem({
           {/* Markdown 内容 */}
           <MarkdownContent content={message.content} />
 
-          {/* 底部工具栏：祖先消息只保留复制，隐藏其余操作 */}
-          <Box className={styles.aiToolbar}>
-            <IconButton
-              size="small"
-              onClick={handleCopy}
-              title="复制"
-              sx={{ color: "text.secondary" }}
-            >
-              {copied ? (
-                <Check fontSize="small" />
-              ) : (
-                <ContentCopy fontSize="small" />
-              )}
-            </IconButton>
+          {/* 流式生成指示器 */}
+          {message.status === MessageStatusEnum.STREAMING && (
+            <Box className={styles.streamingDots} sx={{ color: "primary.main" }}>
+              <span /><span /><span />
+            </Box>
+          )}
 
-            {/* 以下操作在祖先消息中隐藏 */}
-            {!isAncestor && (
-              <>
-                <IconButton
-                  size="small"
-                  onClick={() => onRegenerate?.(message.id)}
-                  title="重新生成"
-                  sx={{ color: "text.secondary" }}
-                >
-                  <Refresh fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  title="有帮助"
-                  sx={{ color: "text.secondary" }}
-                >
-                  <ThumbUp fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  title="没帮助"
-                  sx={{ color: "text.secondary" }}
-                >
-                  <ThumbDown fontSize="small" />
-                </IconButton>
-              </>
-            )}
-          </Box>
+          {/* 生成出错提示 */}
+          {message.status === MessageStatusEnum.ERROR && (
+            <Box className={styles.statusLabel} sx={{ color: "error.main", mt: 0.5 }}>
+              <ErrorOutline sx={{ fontSize: 14 }} />
+              <Typography variant="caption">回复出错</Typography>
+            </Box>
+          )}
+
+          {/* 已停止生成提示 */}
+          {message.status === MessageStatusEnum.STOP_STREAMING && (
+            <Box className={styles.statusLabel} sx={{ color: "text.disabled", mt: 0.5 }}>
+              <Typography variant="caption" sx={{ fontStyle: "italic" }}>已停止生成</Typography>
+            </Box>
+          )}
+
+          {/* 底部工具栏：流式生成中隐藏 */}
+          {message.status !== MessageStatusEnum.STREAMING && (
+            <MessageActions
+              content={message.content}
+              messageId={message.id}
+              isAncestor={isAncestor}
+              onCopy={onCopy}
+              onRegenerate={onRegenerate}
+            />
+          )}
         </Box>
       </Box>
     );
@@ -185,17 +173,40 @@ export const MessageItem = memo(function MessageItem({
           </Box>
         )}
 
-        {/* 消息气泡：祖先消息颜色降级 */}
+        {/* 消息气泡：祖先消息颜色降级，出错时加边框提示 */}
         <Box
           className={styles.humanBubble}
           sx={{
             bgcolor: isAncestor ? "action.focus" : "action.hover",
             color: isAncestor ? "text.secondary" : "text.primary",
-            transition: "background-color 0.2s, color 0.2s",
+            transition: "background-color 0.2s, color 0.2s, opacity 0.2s",
+            ...(message.status === MessageStatusEnum.SENDING && {
+              opacity: 0.65,
+            }),
+            ...(message.status === MessageStatusEnum.ERROR && {
+              outline: "1.5px solid",
+              outlineColor: "error.main",
+            }),
           }}
         >
           {message.content}
         </Box>
+
+        {/* 发送中提示 */}
+        {message.status === MessageStatusEnum.SENDING && (
+          <Box className={styles.statusLabel} sx={{ justifyContent: "flex-end", color: "text.disabled", mt: 0.5 }}>
+            <CircularProgress size={10} color="inherit" />
+            <Typography variant="caption">发送中</Typography>
+          </Box>
+        )}
+
+        {/* 发送失败提示 */}
+        {message.status === MessageStatusEnum.ERROR && (
+          <Box className={styles.statusLabel} sx={{ justifyContent: "flex-end", color: "error.main", mt: 0.5 }}>
+            <ErrorOutline sx={{ fontSize: 14 }} />
+            <Typography variant="caption">发送失败</Typography>
+          </Box>
+        )}
       </Box>
     </Box>
   );
