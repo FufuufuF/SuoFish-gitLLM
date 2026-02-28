@@ -27,7 +27,8 @@ export function useChatOrchestrator() {
     confirmSessionCreation,
     markSessionError,
   } = useChatSession();
-  const { updateActiveThreadId } = useChatSessionStore.getState();
+  const { updateActiveThreadId, updateSessionTitle } =
+    useChatSessionStore.getState();
   const {
     addMessage,
     updateMessageId,
@@ -114,7 +115,15 @@ export function useChatOrchestrator() {
 
           case ChatStreamEventType.CHAT_SESSION_UPDATED: {
             if (event.data.title) {
+              console.log("Received session title update:", event.data.title);
               sessionTitle = event.data.title;
+              // 标题事件到达即更新：
+              // 1) 先写入临时会话（确保真实 id 未返回时也能即时渲染）
+              // 2) 若真实 id 已知，再同步写入真实会话
+              updateSessionTitle(tempSessionId, event.data.title);
+              if (realChatSessionId !== null) {
+                updateSessionTitle(realChatSessionId, event.data.title);
+              }
             }
             break;
           }

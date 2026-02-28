@@ -45,7 +45,8 @@ export function ChatSessionItem({
   const sessionKey = getSessionKey(session);
   const isCreating = session.status === "creating";
   const isError = session.status === "error";
-  const showSkeleton = isCreating && isTitleGenerating;
+  const hasTitle = Boolean(session.title?.trim());
+  const showSkeleton = isCreating && isTitleGenerating && !hasTitle;
 
   const handleClick = () => {
     onClick(sessionKey);

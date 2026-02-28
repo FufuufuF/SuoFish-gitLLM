@@ -47,10 +47,6 @@ export function MessageList({
   // 已有分支消息：
   //   firstCurrentIdx > 0  → 边界前为祖先，分隔栏插在边界处
   const isAllAncestor = activeThreadId !== null && firstCurrentIdx === -1;
-  console.log("firstCurrentIdx", firstCurrentIdx, "activeThreadId", activeThreadId);
-  if (firstCurrentIdx === -1 ) {
-    console.log(messages)
-}
 
   const showDivider = isAllAncestor || firstCurrentIdx > 0;
 
