@@ -1,5 +1,6 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { chat as chatApi } from "@/api/common";
+import { ChatStreamEventType, chatStream } from "@/api/common";
 import { useChatSession } from "@/hooks";
 import { useChatSessionStore } from "@/stores/chat-session-store";
 import { useMessageStore } from "@/stores/message-store";
@@ -19,6 +20,8 @@ import { mapMessageInToMessage } from "../../../hooks/use-message";
  */
 export function useChatOrchestrator() {
   const navigate = useNavigate();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
   const {
     createSession,
     confirmSessionCreation,
@@ -27,10 +30,24 @@ export function useChatOrchestrator() {
   const { updateActiveThreadId } = useChatSessionStore.getState();
   const {
     addMessage,
-    confirmMessage,
+    updateMessageId,
     updateMessageStatus,
     migrateThreadMessages,
+    startStreaming,
+    appendStreamingContent,
+    finalizeStreaming,
+    abortStreaming,
   } = useMessageStore();
+
+  const cancelStreaming = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   /**
    * 发送新会话的第一条消息
@@ -58,44 +75,115 @@ export function useChatOrchestrator() {
       threadId: optimisticThreadId,
     });
 
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    setIsStreaming(true);
+    let hasConfirmedHumanMessage = false;
+
     try {
-      // 4. 调用 chat API（-1 表示让后端创建新 session 和 thread）
-      const response = await chatApi({
-        chat_session_id: -1,
-        thread_id: -1,
-        content,
-      });
-
-      // 5. 更新消息状态（在迁移前完成，确保数据完整）
-      const humanMsg = mapMessageInToMessage(response.human_message);
-      const aiMsg = mapMessageInToMessage(response.ai_message);
-      confirmMessage(optimisticThreadId, tempMsgId, Number(humanMsg.id));
-      addMessage(optimisticThreadId, aiMsg);
-
-      // 6. 将消息从临时 threadId 迁移到真实 threadId
-      migrateThreadMessages(optimisticThreadId, response.thread_id);
-
-      // 7. 确认 session 创建（更新 id + activeThreadId + status）
-      confirmSessionCreation(
-        tempSessionId,
-        response.chat_session_id,
-        response.thread_id,
+      const stream = chatStream(
+        {
+          chat_session_id: -1,
+          thread_id: -1,
+          content,
+        },
+        abortController.signal,
       );
 
-      // 8. 路由跳转到真实会话 URL（replace 避免 history 污染）
-      navigate(`/chat/${response.chat_session_id}`, { replace: true });
+      let hasStartedStreaming = false;
+      let realThreadId: number | null = null;
+      let realChatSessionId: number | null = null;
+      let sessionTitle: string | undefined;
+
+      for await (const event of stream) {
+        switch (event.type) {
+          case ChatStreamEventType.HUMAN_MESSAGE_CREATED: {
+            const { chat_session_id, thread_id, message } = event.data;
+            realChatSessionId = chat_session_id;
+            realThreadId = thread_id;
+
+            updateMessageId(optimisticThreadId, tempMsgId, Number(message.id));
+            updateMessageStatus(
+              optimisticThreadId,
+              Number(message.id),
+              MessageStatusEnum.SUCCESS,
+            );
+            hasConfirmedHumanMessage = true;
+            break;
+          }
+
+          case ChatStreamEventType.CHAT_SESSION_UPDATED: {
+            if (event.data.title) {
+              sessionTitle = event.data.title;
+            }
+            break;
+          }
+
+          case ChatStreamEventType.TOKEN: {
+            if (!hasStartedStreaming) {
+              startStreaming(optimisticThreadId, {
+                id: `streaming-${optimisticThreadId}-${Date.now()}`,
+                role: MessageRoleEnum.ASSISTANT,
+                content: "",
+                status: MessageStatusEnum.STREAMING,
+                timestamp: new Date(),
+                threadId: optimisticThreadId,
+              });
+              hasStartedStreaming = true;
+            }
+            appendStreamingContent(optimisticThreadId, event.data.content);
+            break;
+          }
+
+          case ChatStreamEventType.AI_MESSAGE_CREATED: {
+            const aiMsg = mapMessageInToMessage(event.data.message);
+            finalizeStreaming(optimisticThreadId, aiMsg);
+            break;
+          }
+
+          case ChatStreamEventType.ERROR: {
+            console.error("Stream error:", event.data.message);
+            abortStreaming(optimisticThreadId);
+            markSessionError(tempSessionId);
+            return tempSessionId;
+          }
+        }
+      }
+
+      if (realThreadId && realChatSessionId) {
+        migrateThreadMessages(optimisticThreadId, realThreadId);
+        confirmSessionCreation(
+          tempSessionId,
+          realChatSessionId,
+          realThreadId,
+          sessionTitle,
+        );
+        navigate(`/chat/${realChatSessionId}`, { replace: true });
+      }
     } catch (error) {
-      console.error("Failed to create session and send message:", error);
-      updateMessageStatus(
-        optimisticThreadId,
-        tempMsgId,
-        MessageStatusEnum.ERROR,
-      );
+      const isAborted =
+        error instanceof DOMException && error.name === "AbortError";
+      if (!isAborted) {
+        console.error("Failed to create session and send message:", error);
+      }
+      if (!hasConfirmedHumanMessage) {
+        updateMessageStatus(
+          optimisticThreadId,
+          tempMsgId,
+          MessageStatusEnum.ERROR,
+        );
+      }
+      abortStreaming(optimisticThreadId);
       markSessionError(tempSessionId);
+    } finally {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
+      setIsStreaming(false);
     }
 
     return tempSessionId;
   };
 
-  return { sendFirstMessage };
+  return { sendFirstMessage, cancelStreaming, isStreaming };
 }
