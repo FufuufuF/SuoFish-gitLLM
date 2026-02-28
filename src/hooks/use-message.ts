@@ -1,7 +1,8 @@
-import { useCallback } from "react";
-import { chat as chatApi, getMessageList } from "@/api/common";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChatStreamEventType, chatStream, getMessageList } from "@/api/common";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
+import { useChatSessionStore } from "@/stores/chat-session-store";
 import {
   MessageRoleEnum,
   MessageStatusEnum,
@@ -35,9 +36,15 @@ export function useMessage(threadId?: string | number | null) {
     addMessage,
     prependMessages,
     setMessages,
+    updateMessageId,
     updateMessageStatus,
-    confirmMessage,
+    startStreaming,
+    appendStreamingContent,
+    finalizeStreaming,
+    abortStreaming,
   } = useMessageStore.getState();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
 
   const messages = useMessageStore(
     (state) => (threadId ? state.messagesByThread[threadId] ?? EMPTY_MESSAGES_LIST : EMPTY_MESSAGES_LIST)
@@ -79,8 +86,21 @@ export function useMessage(threadId?: string | number | null) {
     [threadId, prependMessages, setMessages],
   );
 
+  const cancelStreaming = useCallback(() => {
+    abortControllerRef.current?.abort();
+    if (threadId) {
+      abortStreaming(threadId);
+    }
+  }, [threadId, abortStreaming]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   /**
-   * 发送消息（已有会话场景）
+   * 发送消息（已有会话场景，流式版本）
    * 新会话首条消息由 useChatOrchestrator 处理
    */
   const sendMessage = useCallback(
@@ -90,6 +110,9 @@ export function useMessage(threadId?: string | number | null) {
       }
 
       const tempMsgId = crypto.randomUUID();
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+      setIsStreaming(true);
 
       // 乐观更新：立即显示用户消息
       addMessage(threadId, {
@@ -103,32 +126,101 @@ export function useMessage(threadId?: string | number | null) {
       });
 
       try {
-        const response = await chatApi({
-          chat_session_id: chatSessionId,
-          thread_id: threadId,
-          content,
-        });
+        const stream = chatStream(
+          {
+            chat_session_id: chatSessionId,
+            thread_id: threadId,
+            content,
+          },
+          abortController.signal,
+        );
 
-        // 数据转换
-        const humanMsg = mapMessageInToMessage(response.human_message);
-        const aiMsg = mapMessageInToMessage(response.ai_message);
+        let hasStartedStreaming = false;
 
-        // 原子替换临时 ID 并标记成功
-        confirmMessage(threadId, tempMsgId, Number(humanMsg.id));
+        for await (const event of stream) {
+          switch (event.type) {
+            case ChatStreamEventType.HUMAN_MESSAGE_CREATED: {
+              const humanMsg = mapMessageInToMessage(event.data.message);
+              updateMessageId(threadId, tempMsgId, Number(humanMsg.id));
+              updateMessageStatus(
+                threadId,
+                Number(humanMsg.id),
+                MessageStatusEnum.SUCCESS,
+              );
+              break;
+            }
 
-        // 添加 AI 回复
-        addMessage(threadId, aiMsg);
+            case ChatStreamEventType.CHAT_SESSION_UPDATED: {
+              const { chat_session_id, title } = event.data;
+              if (title) {
+                useChatSessionStore
+                  .getState()
+                  .updateSessionTitle(chat_session_id, title);
+              }
+              break;
+            }
+
+            case ChatStreamEventType.TOKEN: {
+              if (!hasStartedStreaming) {
+                startStreaming(threadId, {
+                  id: `streaming-${threadId}-${Date.now()}`,
+                  role: MessageRoleEnum.ASSISTANT,
+                  content: "",
+                  status: MessageStatusEnum.STREAMING,
+                  timestamp: new Date(),
+                  threadId,
+                });
+                hasStartedStreaming = true;
+              }
+              appendStreamingContent(threadId, event.data.content);
+              break;
+            }
+
+            case ChatStreamEventType.AI_MESSAGE_CREATED: {
+              const aiMsg = mapMessageInToMessage(event.data.message);
+              finalizeStreaming(threadId, aiMsg);
+              break;
+            }
+
+            case ChatStreamEventType.ERROR: {
+              console.error("Stream error:", event.data.message);
+              abortStreaming(threadId);
+              return;
+            }
+          }
+        }
       } catch (error) {
-        console.error("Failed to send message:", error);
-        updateMessageStatus(threadId, tempMsgId, MessageStatusEnum.ERROR);
+        const isAborted =
+          error instanceof DOMException && error.name === "AbortError";
+        if (!isAborted) {
+          console.error("Failed to send message:", error);
+          updateMessageStatus(threadId, tempMsgId, MessageStatusEnum.ERROR);
+        }
+        abortStreaming(threadId);
+      } finally {
+        if (abortControllerRef.current === abortController) {
+          abortControllerRef.current = null;
+        }
+        setIsStreaming(false);
       }
     },
-    [threadId, addMessage, confirmMessage, updateMessageStatus],
+    [
+      threadId,
+      addMessage,
+      updateMessageId,
+      updateMessageStatus,
+      startStreaming,
+      appendStreamingContent,
+      finalizeStreaming,
+      abortStreaming,
+    ],
   );
 
   return {
     messages,
     sendMessage,
     fetchMessages,
+    cancelStreaming,
+    isStreaming,
   };
 }

@@ -58,7 +58,8 @@ export function ChatPage() {
   }, [activeSessionId, activeThreadId]);
 
   // ----- Message Hook -----
-  const { messages, sendMessage, fetchMessages } = useMessage(activeThreadId);
+  const { messages, sendMessage, fetchMessages, cancelStreaming, isStreaming } =
+    useMessage(activeThreadId);
 
   const [forkDialogOpen, setForkDialogOpen] = useState(false);
   const [mergeDrawerOpen, setMergeDrawerOpen] = useState(false);
@@ -150,12 +151,14 @@ export function ChatPage() {
         <Box sx={{ width: "80%", flexShrink: 0 }}>
           <ChatInput
             onSend={handleSend}
+            onStopGeneration={cancelStreaming}
             onFork={() => setForkDialogOpen(true)}
             onMerge={handleMerge}
             forkDisabled={isForkDisabled}
             mergeDisabled={isMergeDisabled}
             isMerging={isMerging}
             isMerged={!isThreadStatusNormal}
+            isStreaming={isStreaming}
           />
         </Box>
       </Box>

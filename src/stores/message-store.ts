@@ -36,7 +36,7 @@ export interface MessageStore {
   ) => void;
 
   /**
-    * 将消息从临时 threadId（string | number）迁移到真实 threadId（number）
+   * 将消息从临时 threadId（string | number）迁移到真实 threadId（number）
    * 用于新会话第一条消息发送成功后的乐观更新确认
    */
   migrateThreadMessages: (
@@ -46,6 +46,21 @@ export interface MessageStore {
 
   /** 清除指定 thread 的消息缓存 */
   clearThreadMessages: (threadId: string | number) => void;
+
+  /** 开始流式接收消息 */
+  startStreaming: (
+    threadId: string | number,
+    placeHolderMessage: Message,
+  ) => void;
+
+  /** 追加流式消息 */
+  appendStreamingContent: (threadId: string | number, token: string) => void;
+
+  /** 结束流式消息（标记最后一条消息为 success） */
+  finalizeStreaming: (threadId: string | number, finalMessage: Message) => void;
+
+  /** 放弃流式消息 */
+  abortStreaming: (threadId: string | number) => void;
 }
 
 export const useMessageStore = create<MessageStore>((set) => ({
@@ -136,5 +151,73 @@ export const useMessageStore = create<MessageStore>((set) => ({
       const next = { ...state.messagesByThread };
       delete next[threadId];
       return { messagesByThread: next };
+    }),
+
+  startStreaming: (threadId, placeHolderMessage) =>
+    set((state) => ({
+      messagesByThread: {
+        ...state.messagesByThread,
+        [threadId]: [
+          ...(state.messagesByThread[threadId] ?? []),
+          placeHolderMessage,
+        ],
+      },
+    })),
+
+  appendStreamingContent: (threadId, token) =>
+    set((state) => {
+      const messages = state.messagesByThread[threadId];
+      if (!messages || messages.length === 0) return state;
+
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.status !== MessageStatusEnum.STREAMING) return state;
+
+      return {
+        messagesByThread: {
+          ...state.messagesByThread,
+          [threadId]: [
+            ...messages.slice(0, -1),
+            { ...lastMessage, content: lastMessage.content + token },
+          ],
+        },
+      };
+    }),
+
+  finalizeStreaming: (threadId, finalMessage) =>
+    set((state) => {
+      const messages = state.messagesByThread[threadId];
+      if (!messages || messages.length === 0) return state;
+
+      return {
+        messagesByThread: {
+          ...state.messagesByThread,
+          [threadId]: [
+            ...messages.slice(0, -1),
+            { ...finalMessage, status: MessageStatusEnum.SUCCESS },
+          ],
+        },
+      };
+    }),
+
+  abortStreaming: (threadId) =>
+    set((state) => {
+      const messages = state.messagesByThread[threadId];
+      if (!messages || messages.length === 0) return state;
+
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.status !== MessageStatusEnum.STREAMING) return state;
+
+      if (lastMessage.content.trim()) {
+        return {
+          messagesByThread: {
+            ...state.messagesByThread,
+            [threadId]: [
+              ...messages.slice(0, -1),
+              { ...lastMessage, status: MessageStatusEnum.STOP_STREAMING },
+            ],
+          },
+        };
+      }
+      return state;
     }),
 }));

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, IconButton, InputBase, Paper, Tooltip } from "@mui/material";
 import {
   Send,
+  StopCircle,
   AttachFile,
   Mic,
   CallSplit,
@@ -26,8 +27,12 @@ interface ChatInputProps {
   mergeDisabled?: boolean;
   /** 整体禁用（合并流程进行中时为 true，禁止发送消息和所有操作） */
   isMerging?: boolean;
-    /** 已经合并（线程状态非正常时为 true） */
-    isMerged?: boolean;
+  /** 已经合并（线程状态非正常时为 true） */
+  isMerged?: boolean;
+  /** 是否正在流式生成 */
+  isStreaming?: boolean;
+  /** 停止生成回调 */
+  onStopGeneration?: () => void;
   /** 占位符文本 */
   placeholder?: string;
 }
@@ -42,11 +47,13 @@ export function ChatInput({
   mergeDisabled = false,
   isMerging = false,
   isMerged = false,
+  isStreaming = false,
+  onStopGeneration,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isDisabled = loading || isMerging || isMerged;
+  const isDisabled = loading || isMerging || isMerged || isStreaming;
   const canSend = value.trim().length > 0 && !isDisabled;
 
   const handleSend = async () => {
@@ -64,6 +71,7 @@ export function ChatInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isStreaming) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -187,22 +195,40 @@ export function ChatInput({
             )}
           </Box>
 
-          {/* 右侧发送按钮 */}
-          <IconButton
-            onClick={handleSend}
-            disabled={!canSend}
-            sx={{
-              bgcolor: canSend ? "primary.main" : "action.disabledBackground",
-              color: canSend ? "primary.contrastText" : "action.disabled",
-              "&:hover": {
-                bgcolor: canSend ? "primary.dark" : "action.disabledBackground",
-              },
-              transition: "background-color 0.2s",
-            }}
-            size="small"
-          >
-            <Send fontSize="small" />
-          </IconButton>
+          {/* 右侧发送 / 停止按钮 */}
+          {isStreaming ? (
+            <IconButton
+              onClick={onStopGeneration}
+              disabled={!onStopGeneration}
+              sx={{
+                bgcolor: "warning.main",
+                color: "warning.contrastText",
+                "&:hover": {
+                  bgcolor: "warning.dark",
+                },
+                transition: "background-color 0.2s",
+              }}
+              size="small"
+            >
+              <StopCircle fontSize="small" />
+            </IconButton>
+          ) : (
+            <IconButton
+              onClick={handleSend}
+              disabled={!canSend}
+              sx={{
+                bgcolor: canSend ? "primary.main" : "action.disabledBackground",
+                color: canSend ? "primary.contrastText" : "action.disabled",
+                "&:hover": {
+                  bgcolor: canSend ? "primary.dark" : "action.disabledBackground",
+                },
+                transition: "background-color 0.2s",
+              }}
+              size="small"
+            >
+              <Send fontSize="small" />
+            </IconButton>
+          )}
         </Box>
       </Paper>
 

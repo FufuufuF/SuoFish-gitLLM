@@ -56,8 +56,15 @@ export type ChatStreamEvent =
   | { type: ChatStreamEventType.AI_MESSAGE_CREATED; data: AIMessageCreatedPayload }
   | { type: ChatStreamEventType.ERROR; data: { code: number; message: string } };
 
-export async function* chatStream(request: ChatRequest): AsyncGenerator<ChatStreamEvent, void, unknown> {
-    const sseGenerator = apiClient.postSSE<ChatStreamEvent, ChatRequest>("/chat/stream/", request);
+export async function* chatStream(
+  request: ChatRequest,
+  signal?: AbortSignal,
+): AsyncGenerator<ChatStreamEvent, void, unknown> {
+    const sseGenerator = apiClient.postSSE<ChatStreamEvent, ChatRequest>(
+      "/chat/stream",
+      request,
+      { signal },
+    );
     for await (const event of sseGenerator) {
         yield event;
     }
