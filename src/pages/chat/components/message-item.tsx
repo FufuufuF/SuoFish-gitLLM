@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Box, IconButton, Avatar } from "@mui/material";
 import {
   ContentCopy,
@@ -10,7 +10,7 @@ import {
 import { MarkdownContent } from "./markdown-content";
 import { BriefMessageItem } from "./brief-message-item";
 import type { Message } from "@/types";
-import { MessageType } from "@/types";
+import { MessageRoleEnum, MessageType } from "@/types";
 import styles from "./index.module.less";
 interface MessageItemProps {
   message: Message;
@@ -29,14 +29,14 @@ interface MessageItemProps {
  * - BRIEF 消息: 转发给 BriefMessageItem 渲染
  * - isAncestor=true: 降权样式（颜色灰化，操作按钮受限）
  */
-export function MessageItem({
+export const MessageItem = memo(function MessageItem({
   message,
   isAncestor = false,
   onCopy,
   onRegenerate,
 }: MessageItemProps) {
   const [copied, setCopied] = useState(false);
-  const isAI = message.role === 2;
+  const isAI = message.role === MessageRoleEnum.ASSISTANT;
 
   // BRIEF 消息走专属组件
   if (message.type === MessageType.BRIEF) {
@@ -199,4 +199,4 @@ export function MessageItem({
       </Box>
     </Box>
   );
-}
+});
