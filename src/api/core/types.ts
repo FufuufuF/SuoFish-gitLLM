@@ -5,8 +5,8 @@ export interface ApiResponse<T> {
 }
 
 export enum PageDirection {
-  BEFORE = "BEFORE",
-  AFTER = "AFTER",
+  BEFORE = "before",
+  AFTER = "after",
 }
 
 // 分页请求查询参数
@@ -23,11 +23,11 @@ export interface PageResponse {
 
 // SSE类型
 export interface SseEvent<T> {
-    type: string;
-    data: T;
+  type: string;
+  data: T;
 }
 
 export interface PostSseOptions {
-    signal?: AbortSignal;
-    headers?: HeadersInit;
+  signal?: AbortSignal;
+  headers?: HeadersInit;
 }

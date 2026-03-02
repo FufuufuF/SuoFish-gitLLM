@@ -35,8 +35,8 @@ export class ApiClient {
     );
   }
 
-  public get<T>(apiPath: string, params?: unknown): Promise<T> {
-    return this.axios.get(apiPath, { params });
+  public get<T>(apiPath: string, config?: { params?: unknown }): Promise<T> {
+    return this.axios.get(apiPath, config);
   }
 
   public post<T, D>(apiPath: string, data: D): Promise<T> {
