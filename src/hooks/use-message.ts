@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatStreamEventType, chatStream, getMessageList } from "@/api/common";
+import type { LoadMoreResult } from "@/components/layout/infinite-scroll-list";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
 import { useChatSessionStore } from "@/stores/chat-session-store";
@@ -46,19 +47,21 @@ export function useMessage(threadId?: string | number | null) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
 
-  const messages = useMessageStore(
-    (state) => (threadId ? state.messagesByThread[threadId] ?? EMPTY_MESSAGES_LIST : EMPTY_MESSAGES_LIST)
-  )
+  const messages = useMessageStore((state) =>
+    threadId
+      ? (state.messagesByThread[threadId] ?? EMPTY_MESSAGES_LIST)
+      : EMPTY_MESSAGES_LIST,
+  );
 
   /**
    * 加载消息（游标分页）
    * - cursor 为空：初始加载，覆盖写入 store
    * - cursor 有值：向上翻页，插入到消息列表头部
    * @param cursor 游标，不传则从最新一条开始
-   * @param limit  每页条数，默认 50
+   * @param limit  每页条数，默认 5
    */
   const fetchMessages = useCallback(
-    async (cursor?: string, limit: number = 50) => {
+    async (cursor?: string, limit: number = 5) => {
       if (!threadId || typeof threadId === "string") return; // 临时 threadId 阶段不请求
 
       try {
@@ -84,6 +87,25 @@ export function useMessage(threadId?: string | number | null) {
       }
     },
     [threadId, prependMessages, setMessages],
+  );
+
+  /**
+   * fetchMore 适配层 — 供 UpwardInfiniteList 使用
+   * - 临时 threadId（string）或 threadId 为空时，直接返回 hasMore:false，不发请求
+   * - 正常情况下调用 fetchMessages 并映射为 LoadMoreResult
+   */
+  const fetchMoreMessages = useCallback(
+    async (cursor?: string): Promise<LoadMoreResult> => {
+      if (!threadId || typeof threadId === "string") {
+        return { hasMore: false };
+      }
+      const response = await fetchMessages(cursor);
+      return {
+        nextCursor: response?.next_cursor,
+        hasMore: response?.has_more ?? false,
+      };
+    },
+    [threadId, fetchMessages],
   );
 
   const cancelStreaming = useCallback(() => {
@@ -220,6 +242,7 @@ export function useMessage(threadId?: string | number | null) {
     messages,
     sendMessage,
     fetchMessages,
+    fetchMoreMessages,
     cancelStreaming,
     isStreaming,
   };

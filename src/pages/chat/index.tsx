@@ -1,11 +1,13 @@
-import { useState, useEffect, useLayoutEffect, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Box } from "@mui/material";
 import { ChatInput, MessageList } from "./components";
-import { ThreadForkDialog } from "@/components/common/thread-fork-dialog";
 import {
-  ThreadMergeDrawer,
-} from "@/feature/thread-branch-graph/components/thread-merge-drawer";
+  UpwardInfiniteList,
+  type UpwardInfiniteListHandle,
+} from "@/components/layout/upward-infinite-list";
+import { ThreadForkDialog } from "@/components/common/thread-fork-dialog";
+import { ThreadMergeDrawer } from "@/feature/thread-branch-graph/components/thread-merge-drawer";
 import { useMessage } from "../../hooks/use-message";
 import { useChatOrchestrator } from "./hooks/use-chat-orchestrator";
 import { useChatSessionStore } from "@/stores/chat-session-store";
@@ -62,8 +64,14 @@ export function ChatPage() {
   }, [activeSessionId, activeThreadId]);
 
   // ----- Message Hook -----
-  const { messages, sendMessage, fetchMessages, cancelStreaming, isStreaming } =
-    useMessage(activeThreadId);
+  const {
+    messages,
+    sendMessage,
+    fetchMoreMessages,
+    cancelStreaming,
+    isStreaming,
+  } = useMessage(activeThreadId);
+  const listRef = useRef<UpwardInfiniteListHandle>(null);
   const isAnyStreaming = isStreaming || isFirstMessageStreaming;
 
   const handleStopGeneration = () => {
@@ -100,13 +108,6 @@ export function ChatPage() {
     }
   }, [isValidUrlSession, parsedUrlSessionId, setActiveSessionId]);
 
-  // ----- 切换到已有会话时拉取历史消息 -----
-  useEffect(() => {
-    if (isValidUrlSession && activeThreadId) {
-      fetchMessages();
-    }
-  }, [isValidUrlSession, activeThreadId, fetchMessages]);
-
   // ----- 消息发送 -----
   const handleSend = async (content: string) => {
     if (isNewSessionMode) {
@@ -114,6 +115,7 @@ export function ChatPage() {
     } else {
       await sendMessage(content, activeSessionId as number);
     }
+    listRef.current?.scrollToBottom("smooth");
   };
 
   // ----- Fork 确认 -----
@@ -151,13 +153,19 @@ export function ChatPage() {
           transition: "all 0.3s ease",
         }}
       >
-        <Box sx={{ flex: 1, width: "100%", overflowY: "auto", minHeight: 0 }}>
+        <UpwardInfiniteList
+          ref={listRef}
+          key={activeThreadId ?? "new"}
+          fetchMore={fetchMoreMessages}
+          isEmpty={messages.length === 0}
+          sx={{ flex: 1, minHeight: 0 }}
+        >
           <MessageList
             messages={messages}
             activeThreadId={activeThreadId}
             parentThreadTitle={parentThreadTitle}
           />
-        </Box>
+        </UpwardInfiniteList>
         <Box sx={{ width: "80%", flexShrink: 0 }}>
           <ChatInput
             onSend={handleSend}

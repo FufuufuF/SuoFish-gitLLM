@@ -32,8 +32,9 @@ export interface MessageResponse extends PageResponse {
 }
 
 export const getMessageList = (params: MessageRequest) => {
+  const { thread_id, ...queryParams } = params;
   return apiClient.get<MessageResponse>(
-    `/threads/${params.thread_id}/context-messages`,
-    { params },
+    `/threads/${thread_id}/context-messages`,
+    { params: queryParams },
   );
 };
