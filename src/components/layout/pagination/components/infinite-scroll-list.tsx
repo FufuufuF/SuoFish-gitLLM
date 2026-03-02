@@ -1,13 +1,14 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { Box, type SxProps, type Theme } from "@mui/material";
+import { usePaginationLoader } from "../hooks/use-pagination-loader";
+import type { LoadMoreResult } from "../types";
+import {
+  PaginationInitialLoading,
+  PaginationInlineLoading,
+  PaginationRetryState,
+} from "./common";
 
 // ===== 类型定义 =====
-
-/** fetchMore 的返回类型，只包含分页元数据 */
-export interface LoadMoreResult {
-  nextCursor?: string;
-  hasMore: boolean;
-}
 
 export interface InfiniteScrollListProps<T> {
   /** 外部传入的列表数据（来自 Store） */
@@ -20,6 +21,8 @@ export interface InfiniteScrollListProps<T> {
   renderLoading?: () => React.ReactNode;
   /** 渲染空状态 */
   renderEmpty?: () => React.ReactNode;
+  /** 渲染错误状态（点击重试） */
+  renderError?: (retry: () => void, error: unknown) => React.ReactNode;
   /** 容器自定义样式 */
   sx?: SxProps<Theme>;
 }
@@ -32,43 +35,37 @@ export function InfiniteScrollList<T>({
   renderItem,
   renderLoading,
   renderEmpty,
+  renderError,
   sx,
 }: InfiniteScrollListProps<T>) {
-  // ----- 分页状态（内部管理） -----
-  const [cursor, setCursor] = useState<string | undefined>();
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const {
+    hasMore,
+    isLoading,
+    isError,
+    error,
+    isInitialLoading,
+    tryAutoLoad,
+    retry,
+  } = usePaginationLoader({ fetchMore });
 
   // ----- Refs -----
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const fetchMoreRef = useRef(fetchMore);
 
-  // 保持 fetchMore ref 最新，避免 useCallback/useEffect 依赖问题
-  useEffect(() => {
-    fetchMoreRef.current = fetchMore;
-  }, [fetchMore]);
+  const defaultError = (
+    <PaginationRetryState
+      isRetrying={isLoading}
+      onRetry={() => {
+        void retry();
+      }}
+    />
+  );
 
-  // ----- 加载更多 -----
-  const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-
-    setIsLoadingMore(true);
-    try {
-      const result = await fetchMoreRef.current(cursor);
-      setCursor(result.nextCursor);
-      setHasMore(result.hasMore);
-    } catch (error) {
-      console.error("InfiniteScrollList: failed to load more", error);
-    } finally {
-      setIsLoadingMore(false);
-      setIsInitialLoading(false);
-    }
-  }, [cursor, hasMore, isLoadingMore]);
+  const defaultLoadMore = <PaginationInlineLoading />;
+  const defaultInitialLoading = <PaginationInitialLoading />;
 
   // ----- 初始加载 -----
   useEffect(() => {
-    loadMore();
+    void tryAutoLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,7 +77,7 @@ export function InfiniteScrollList<T>({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          loadMore();
+          void tryAutoLoad();
         }
       },
       { threshold: 0 },
@@ -88,14 +85,31 @@ export function InfiniteScrollList<T>({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadMore]);
+  }, [tryAutoLoad]);
 
   // ----- 渲染 -----
 
   // 初始加载状态
   if (isInitialLoading) {
     return (
-      <Box sx={{ height: "100%", ...sx }}>{renderLoading?.() ?? null}</Box>
+      <Box sx={{ height: "100%", ...sx }}>
+        {renderLoading?.() ?? defaultInitialLoading}
+      </Box>
+    );
+  }
+
+  if (isError && items.length === 0) {
+    return (
+      <Box sx={{ height: "100%", ...sx }}>
+        {renderError
+          ? renderError(
+              () => {
+                void retry();
+              },
+              error,
+            )
+          : defaultError}
+      </Box>
     );
   }
 
@@ -117,7 +131,16 @@ export function InfiniteScrollList<T>({
       {/* 哨兵元素：当滚动到此处时触发加载更多 */}
       {hasMore && (
         <Box ref={sentinelRef} sx={{ minHeight: 1 }}>
-          {isLoadingMore && (renderLoading?.() ?? null)}
+          {isLoading && (renderLoading?.() ?? defaultLoadMore)}
+          {isError &&
+            (renderError
+              ? renderError(
+                  () => {
+                    void retry();
+                  },
+                  error,
+                )
+              : defaultError)}
         </Box>
       )}
     </Box>

@@ -1,19 +1,18 @@
 import {
-  useState,
   useCallback,
   useRef,
   useEffect,
   useImperativeHandle,
   forwardRef,
 } from "react";
+import { Box, type SxProps, type Theme } from "@mui/material";
+import type { LoadMoreResult } from "../types";
+import { usePaginationLoader } from "../hooks/use-pagination-loader";
 import {
-  Box,
-  CircularProgress,
-  Typography,
-  type SxProps,
-  type Theme,
-} from "@mui/material";
-import type { LoadMoreResult } from "./infinite-scroll-list";
+  PaginationInitialLoading,
+  PaginationInlineLoading,
+  PaginationRetryState,
+} from "./common";
 
 // ===== 类型定义 =====
 
@@ -35,6 +34,8 @@ export interface UpwardInfiniteListProps {
   children: React.ReactNode;
   /** 渲染加载中状态（初始加载 + 向上加载更多时在顶部显示） */
   renderLoading?: () => React.ReactNode;
+  /** 渲染错误状态（点击重试） */
+  renderError?: (retry: () => void, error: unknown) => React.ReactNode;
   /** 渲染空状态（isEmpty && !hasMore 时显示） */
   renderEmpty?: () => React.ReactNode;
   /**
@@ -52,55 +53,36 @@ export const UpwardInfiniteList = forwardRef<
   UpwardInfiniteListHandle,
   UpwardInfiniteListProps
 >(function UpwardInfiniteList(
-  { fetchMore, children, renderLoading, renderEmpty, isEmpty, sx },
+  { fetchMore, children, renderLoading, renderError, renderEmpty, isEmpty, sx },
   ref,
 ) {
-  // ----- 默认 Loading UI -----
-  const defaultInitialLoading = (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100%",
-      }}
-    >
-      <CircularProgress size={32} />
-    </Box>
-  );
+  // ----- 默认状态 UI -----
+  const defaultInitialLoading = <PaginationInitialLoading />;
+  const defaultLoadMoreLoading = <PaginationInlineLoading />;
 
-  const defaultLoadMoreLoading = (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 1,
-        py: 1.5,
-      }}
-    >
-      <CircularProgress size={16} />
-      <Typography variant="caption" color="text.secondary">
-        加载中…
-      </Typography>
-    </Box>
-  );
-  // ----- 分页状态（内部管理） -----
-  const [cursor, setCursor] = useState<string | undefined>();
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const {
+    hasMore,
+    isLoading,
+    isError,
+    error,
+    isInitialLoading,
+    tryAutoLoad,
+    retry,
+  } = usePaginationLoader({ fetchMore });
 
   // ----- Refs -----
   const containerRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
-  // 保持 fetchMore ref 最新，避免 loadMore useCallback 依赖导致 Observer 频繁重建
-  const fetchMoreRef = useRef(fetchMore);
 
-  useEffect(() => {
-    fetchMoreRef.current = fetchMore;
-  }, [fetchMore]);
+  const defaultError = (
+    <PaginationRetryState
+      isRetrying={isLoading}
+      onRetry={() => {
+        void retryWithScrollFix();
+      }}
+    />
+  );
 
   // ----- 暴露命令式 API -----
   useImperativeHandle(ref, () => ({
@@ -109,39 +91,47 @@ export const UpwardInfiniteList = forwardRef<
     },
   }));
 
-  // ----- 加载更多 -----
-  const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-
+  // ----- 加载更多（保留向上插入后的滚动位置修正） -----
+  const loadMoreWithScrollFix = useCallback(async () => {
     const container = containerRef.current;
+    const shouldFixScroll = !!container && !isInitialLoading;
+
     // 在加载前记录当前 scrollHeight，用于后续修正滚动位置
     const prevScrollHeight = container?.scrollHeight ?? 0;
 
-    setIsLoadingMore(true);
-    try {
-      const result = await fetchMoreRef.current(cursor);
-      setCursor(result.nextCursor);
-      setHasMore(result.hasMore);
+    const result = await tryAutoLoad();
 
-      // 修正滚动位置：向上插入内容后，浏览器会将所有内容下移，
-      // 通过 scrollHeight 差值将 scrollTop 恢复到插入前的相对位置。
-      // 初始加载时不修正（此时会自动 scrollToBottom）。
-      if (container && !isInitialLoading) {
-        requestAnimationFrame(() => {
-          container.scrollTop += container.scrollHeight - prevScrollHeight;
-        });
-      }
-    } catch (error) {
-      console.error("UpwardInfiniteList: failed to load more", error);
-    } finally {
-      setIsLoadingMore(false);
-      setIsInitialLoading(false);
+    // 修正滚动位置：向上插入内容后，浏览器会将所有内容下移，
+    // 通过 scrollHeight 差值将 scrollTop 恢复到插入前的相对位置。
+    // 初始加载时不修正（此时会自动 scrollToBottom）。
+    if (result.success && shouldFixScroll && container) {
+      requestAnimationFrame(() => {
+        container.scrollTop += container.scrollHeight - prevScrollHeight;
+      });
     }
-  }, [cursor, hasMore, isLoadingMore, isInitialLoading]);
+
+    return result;
+  }, [isInitialLoading, tryAutoLoad]);
+
+  const retryWithScrollFix = useCallback(async () => {
+    const container = containerRef.current;
+    const shouldFixScroll = !!container && !isInitialLoading;
+    const prevScrollHeight = container?.scrollHeight ?? 0;
+
+    const result = await retry();
+
+    if (result.success && shouldFixScroll && container) {
+      requestAnimationFrame(() => {
+        container.scrollTop += container.scrollHeight - prevScrollHeight;
+      });
+    }
+
+    return result;
+  }, [isInitialLoading, retry]);
 
   // ----- 初始加载 -----
   useEffect(() => {
-    loadMore();
+    void loadMoreWithScrollFix();
     // 只在挂载时触发一次，后续由 IntersectionObserver 驱动
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -162,7 +152,7 @@ export const UpwardInfiniteList = forwardRef<
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          loadMore();
+          void loadMoreWithScrollFix();
         }
       },
       { threshold: 0 },
@@ -170,7 +160,7 @@ export const UpwardInfiniteList = forwardRef<
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadMore]);
+  }, [loadMoreWithScrollFix]);
 
   // ----- 渲染 -----
 
@@ -179,6 +169,21 @@ export const UpwardInfiniteList = forwardRef<
     return (
       <Box sx={{ height: "100%", ...sx }}>
         {renderLoading ? renderLoading() : defaultInitialLoading}
+      </Box>
+    );
+  }
+
+  if (isError && isEmpty) {
+    return (
+      <Box sx={{ height: "100%", ...sx }}>
+        {renderError
+          ? renderError(
+              () => {
+                void retryWithScrollFix();
+              },
+              error,
+            )
+          : defaultError}
       </Box>
     );
   }
@@ -201,8 +206,19 @@ export const UpwardInfiniteList = forwardRef<
       {hasMore && <Box ref={topSentinelRef} sx={{ height: "1px" }} />}
 
       {/* loading 指示器：紧贴最旧消息上方，独立于哨兵 */}
-      {isLoadingMore &&
+      {isLoading &&
         (renderLoading ? renderLoading() : defaultLoadMoreLoading)}
+
+      {/* 错误态：仅手动重试，不自动触发 */}
+      {isError &&
+        (renderError
+          ? renderError(
+              () => {
+                void retryWithScrollFix();
+              },
+              error,
+            )
+          : defaultError)}
 
       {/* children 由外部完全控制，组件对内容结构透明 */}
       {children}

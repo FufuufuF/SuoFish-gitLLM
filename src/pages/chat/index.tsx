@@ -5,7 +5,7 @@ import { ChatInput, MessageList } from "./components";
 import {
   UpwardInfiniteList,
   type UpwardInfiniteListHandle,
-} from "@/components/layout/upward-infinite-list";
+} from "@/components/layout/pagination";
 import { ThreadForkDialog } from "@/components/common/thread-fork-dialog";
 import { ThreadMergeDrawer } from "@/feature/thread-branch-graph/components/thread-merge-drawer";
 import { useMessage } from "../../hooks/use-message";
