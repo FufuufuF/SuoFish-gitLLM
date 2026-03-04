@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Box, Tab, Tabs } from "@mui/material";
-import { ChatBubbleOutline, AccountTree } from "@mui/icons-material";
+import ChatBubbleOutline from "@mui/icons-material/ChatBubbleOutline";
+import AccountTree from "@mui/icons-material/AccountTree";
 import { ChatSessionList } from "@/feature/chat-session-list";
 import { ThreadTreePanel } from "@/feature/thread-branch-graph";
 import { useChatSessionStore } from "@/stores/chat-session-store";

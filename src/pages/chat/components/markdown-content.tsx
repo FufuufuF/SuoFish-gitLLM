@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+// 使用 prism-light 入口（比全量 prism 轻 ~200KB），仍支持所有语言（按需注册）
+import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism-light";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import type { Components } from "react-markdown";
 import styles from "./index.module.less";

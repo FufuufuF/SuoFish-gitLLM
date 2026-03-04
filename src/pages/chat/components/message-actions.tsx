@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Box, IconButton } from "@mui/material";
-import {
-  ContentCopy,
-  Check,
-  Refresh,
-  ThumbUp,
-  ThumbDown,
-} from "@mui/icons-material";
+import ContentCopy from "@mui/icons-material/ContentCopy";
+import Check from "@mui/icons-material/Check";
+import Refresh from "@mui/icons-material/Refresh";
+import ThumbUp from "@mui/icons-material/ThumbUp";
+import ThumbDown from "@mui/icons-material/ThumbDown";
 import styles from "./index.module.less";
 
 interface MessageActionsProps {
@@ -55,11 +53,7 @@ export function MessageActions({
         title="复制"
         sx={{ color: "text.secondary" }}
       >
-        {copied ? (
-          <Check fontSize="small" />
-        ) : (
-          <ContentCopy fontSize="small" />
-        )}
+        {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
       </IconButton>
 
       {!isAncestor && (

@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { CallSplit } from "@mui/icons-material";
+import CallSplit from "@mui/icons-material/CallSplit";
 
 interface ThreadForkDividerProps {
   /** 父线程标题，用于显示「从「xxx」切出」 */

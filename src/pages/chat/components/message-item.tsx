@@ -1,10 +1,14 @@
 import { memo, useState } from "react";
-import { Box, IconButton, Avatar, Typography, CircularProgress } from "@mui/material";
 import {
-  ContentCopy,
-  Check,
-  ErrorOutline,
-} from "@mui/icons-material";
+  Box,
+  IconButton,
+  Avatar,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
+import ContentCopy from "@mui/icons-material/ContentCopy";
+import Check from "@mui/icons-material/Check";
+import ErrorOutline from "@mui/icons-material/ErrorOutline";
 import { MarkdownContent } from "./markdown-content";
 import { MessageActions } from "./message-actions";
 import { BriefMessageItem } from "./brief-message-item";
@@ -98,14 +102,22 @@ export const MessageItem = memo(function MessageItem({
 
           {/* 流式生成指示器 */}
           {message.status === MessageStatusEnum.STREAMING && (
-            <Box className={styles.streamingDots} sx={{ color: "primary.main" }}>
-              <span /><span /><span />
+            <Box
+              className={styles.streamingDots}
+              sx={{ color: "primary.main" }}
+            >
+              <span />
+              <span />
+              <span />
             </Box>
           )}
 
           {/* 生成出错提示 */}
           {message.status === MessageStatusEnum.ERROR && (
-            <Box className={styles.statusLabel} sx={{ color: "error.main", mt: 0.5 }}>
+            <Box
+              className={styles.statusLabel}
+              sx={{ color: "error.main", mt: 0.5 }}
+            >
               <ErrorOutline sx={{ fontSize: 14 }} />
               <Typography variant="caption">回复出错</Typography>
             </Box>
@@ -113,8 +125,13 @@ export const MessageItem = memo(function MessageItem({
 
           {/* 已停止生成提示 */}
           {message.status === MessageStatusEnum.STOP_STREAMING && (
-            <Box className={styles.statusLabel} sx={{ color: "text.disabled", mt: 0.5 }}>
-              <Typography variant="caption" sx={{ fontStyle: "italic" }}>已停止生成</Typography>
+            <Box
+              className={styles.statusLabel}
+              sx={{ color: "text.disabled", mt: 0.5 }}
+            >
+              <Typography variant="caption" sx={{ fontStyle: "italic" }}>
+                已停止生成
+              </Typography>
             </Box>
           )}
 
@@ -194,7 +211,10 @@ export const MessageItem = memo(function MessageItem({
 
         {/* 发送中提示 */}
         {message.status === MessageStatusEnum.SENDING && (
-          <Box className={styles.statusLabel} sx={{ justifyContent: "flex-end", color: "text.disabled", mt: 0.5 }}>
+          <Box
+            className={styles.statusLabel}
+            sx={{ justifyContent: "flex-end", color: "text.disabled", mt: 0.5 }}
+          >
             <CircularProgress size={10} color="inherit" />
             <Typography variant="caption">发送中</Typography>
           </Box>
@@ -202,7 +222,10 @@ export const MessageItem = memo(function MessageItem({
 
         {/* 发送失败提示 */}
         {message.status === MessageStatusEnum.ERROR && (
-          <Box className={styles.statusLabel} sx={{ justifyContent: "flex-end", color: "error.main", mt: 0.5 }}>
+          <Box
+            className={styles.statusLabel}
+            sx={{ justifyContent: "flex-end", color: "error.main", mt: 0.5 }}
+          >
             <ErrorOutline sx={{ fontSize: 14 }} />
             <Typography variant="caption">发送失败</Typography>
           </Box>

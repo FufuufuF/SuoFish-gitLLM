@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Box, IconButton, InputBase, Paper, Tooltip } from "@mui/material";
-import {
-  Send,
-  StopCircle,
-  AttachFile,
-  Mic,
-  CallSplit,
-  MergeType,
-} from "@mui/icons-material";
+import Send from "@mui/icons-material/Send";
+import StopCircle from "@mui/icons-material/StopCircle";
+import AttachFile from "@mui/icons-material/AttachFile";
+import Mic from "@mui/icons-material/Mic";
+import CallSplit from "@mui/icons-material/CallSplit";
+import MergeType from "@mui/icons-material/MergeType";
 import { getChatInputPlaceholder } from "../utils/get-chat-input-placeholder";
 
 interface ChatInputProps {
@@ -220,7 +218,9 @@ export function ChatInput({
                 bgcolor: canSend ? "primary.main" : "action.disabledBackground",
                 color: canSend ? "primary.contrastText" : "action.disabled",
                 "&:hover": {
-                  bgcolor: canSend ? "primary.dark" : "action.disabledBackground",
+                  bgcolor: canSend
+                    ? "primary.dark"
+                    : "action.disabledBackground",
                 },
                 transition: "background-color 0.2s",
               }}

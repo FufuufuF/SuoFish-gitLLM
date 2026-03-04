@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Box, Typography, IconButton, Collapse } from "@mui/material";
-import { Article, ExpandMore, ExpandLess } from "@mui/icons-material";
+import Article from "@mui/icons-material/Article";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import ExpandLess from "@mui/icons-material/ExpandLess";
 import { MarkdownContent } from "./markdown-content";
 import type { Message } from "@/types";
 
