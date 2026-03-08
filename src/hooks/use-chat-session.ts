@@ -8,9 +8,6 @@ import type { ChatSession } from "@/types";
 
 export function useChatSession() {
   const {
-    sessions,
-    activeSessionId,
-    isTitleGenerating,
     setSessions,
     addSession,
     updateSessionStatus,
@@ -20,7 +17,10 @@ export function useChatSession() {
     removeSession,
     setTitleGenerating,
     updateActiveThreadId,
-  } = useChatSessionStore();
+  } = useChatSessionStore.getState();
+  const sessions = useChatSessionStore((s) => s.sessions);
+  const activeSessionId = useChatSessionStore((s) => s.activeSessionId);
+  const isTitleGenerating = useChatSessionStore((s) => s.isTitleGenerating);
 
   // ===== 数据转换函数（供分页组件使用） =====
   const mapApiSessionToBusinessSession = useCallback(
