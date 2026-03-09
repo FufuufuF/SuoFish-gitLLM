@@ -22,11 +22,8 @@ export function useChatOrchestrator() {
   const navigate = useNavigate();
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const {
-    createSession,
-    confirmSessionCreation,
-    markSessionError,
-  } = useChatSession();
+  const { createSession, confirmSessionCreation, markSessionError } =
+    useChatSession();
   const { updateActiveThreadId, updateSessionTitle } =
     useChatSessionStore.getState();
   const {
@@ -38,7 +35,7 @@ export function useChatOrchestrator() {
     appendStreamingContent,
     finalizeStreaming,
     abortStreaming,
-  } = useMessageStore();
+  } = useMessageStore.getState();
 
   const cancelStreaming = useCallback(() => {
     abortControllerRef.current?.abort();
