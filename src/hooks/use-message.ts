@@ -3,7 +3,6 @@ import { ChatStreamEventType, chatStream, getMessageList } from "@/api/common";
 import type { LoadMoreResult } from "@/components/layout/pagination/";
 import type { MessageIn } from "@/api/common/message";
 import { PageDirection } from "@/api/core/types";
-import { useChatSessionStore } from "@/stores/chat-session-store";
 import {
   MessageRoleEnum,
   MessageStatusEnum,
