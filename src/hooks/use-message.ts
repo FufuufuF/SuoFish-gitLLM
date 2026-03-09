@@ -185,16 +185,6 @@ export function useMessage(threadId?: string | number | null) {
               break;
             }
 
-            case ChatStreamEventType.CHAT_SESSION_UPDATED: {
-              const { chat_session_id, title } = event.data;
-              if (title) {
-                useChatSessionStore
-                  .getState()
-                  .updateSessionTitle(chat_session_id, title);
-              }
-              break;
-            }
-
             case ChatStreamEventType.TOKEN: {
               if (!hasStartedStreaming) {
                 startStreaming(threadId, {
