@@ -136,6 +136,19 @@ export function useMessage(threadId?: string | number | null) {
       abortControllerRef.current = abortController;
       setIsStreaming(true);
 
+      // rAF 节流缓冲 — 将同一帧内收到的多个 token 合并为一次 store 写入
+      // 使用局部变量而非 useRef，保证每次 sendMessage 调用有独立的缓冲区
+      let tokenBuffer = "";
+      let rafHandle: number | null = null;
+
+      const flushTokenBuffer = () => {
+        if (tokenBuffer) {
+          appendStreamingContent(threadId as number, tokenBuffer);
+          tokenBuffer = "";
+        }
+        rafHandle = null;
+      };
+
       // 乐观更新：立即显示用户消息
       addMessage(threadId, {
         id: tempMsgId,
@@ -194,7 +207,11 @@ export function useMessage(threadId?: string | number | null) {
                 });
                 hasStartedStreaming = true;
               }
-              appendStreamingContent(threadId, event.data.content);
+              // 积累 token，下一帧批量写入 store
+              tokenBuffer += event.data.content;
+              if (!rafHandle) {
+                rafHandle = requestAnimationFrame(flushTokenBuffer);
+              }
               break;
             }
 
@@ -220,6 +237,12 @@ export function useMessage(threadId?: string | number | null) {
         }
         abortStreaming(threadId);
       } finally {
+        // 取消可能还挂起的 rAF，并同步 flush 残留 buffer
+        // 防止流结束时最后一批 token 因 rAF 未执行而丢失
+        if (rafHandle !== null) {
+          cancelAnimationFrame(rafHandle);
+          flushTokenBuffer();
+        }
         if (abortControllerRef.current === abortController) {
           abortControllerRef.current = null;
         }
