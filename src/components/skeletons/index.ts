@@ -6,3 +6,4 @@
  */
 export { FullPageSkeleton } from "./full-page-skeleton";
 export { ChatPageSkeleton } from "./chat-page-skeleton";
+export { ThinkingSkeleton } from "./thinking-skeleton";

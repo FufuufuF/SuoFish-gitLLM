@@ -170,14 +170,22 @@ export const useMessageStore = create<MessageStore>((set) => ({
       if (!messages || messages.length === 0) return state;
 
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.status !== MessageStatusEnum.STREAMING) return state;
+      if (
+        lastMessage.status !== MessageStatusEnum.STREAMING &&
+        lastMessage.status !== MessageStatusEnum.THINKING
+      )
+        return state;
 
       return {
         messagesByThread: {
           ...state.messagesByThread,
           [threadId]: [
             ...messages.slice(0, -1),
-            { ...lastMessage, content: lastMessage.content + token },
+            {
+              ...lastMessage,
+              content: lastMessage.content + token,
+              status: MessageStatusEnum.STREAMING,
+            },
           ],
         },
       };
@@ -205,7 +213,21 @@ export const useMessageStore = create<MessageStore>((set) => ({
       if (!messages || messages.length === 0) return state;
 
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.status !== MessageStatusEnum.STREAMING) return state;
+      if (
+        lastMessage.status !== MessageStatusEnum.STREAMING &&
+        lastMessage.status !== MessageStatusEnum.THINKING
+      )
+        return state;
+
+      // THINKING 阶段（无内容）直接移除占位消息
+      if (lastMessage.status === MessageStatusEnum.THINKING) {
+        return {
+          messagesByThread: {
+            ...state.messagesByThread,
+            [threadId]: messages.slice(0, -1),
+          },
+        };
+      }
 
       if (lastMessage.content.trim()) {
         return {

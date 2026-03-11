@@ -6,6 +6,7 @@ export enum MessageStatusEnum {
   ERROR = MessageStatusApi.ERROR,
   STOP_STREAMING = MessageStatusApi.STOP_GENERATION, // 用户点击停止生成
   STREAMING = 4,
+  THINKING = 5, // 等待首个 token（AI 占位态）
 }
 
 export const mapBackendMessageStatusToUiStatus = (

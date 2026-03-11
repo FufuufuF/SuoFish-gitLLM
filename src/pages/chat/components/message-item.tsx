@@ -12,6 +12,7 @@ import ErrorOutline from "@mui/icons-material/ErrorOutline";
 import { MarkdownContent } from "./markdown-content";
 import { MessageActions } from "./message-actions";
 import { BriefMessageItem } from "./brief-message-item";
+import { ThinkingSkeleton } from "@/components/skeletons";
 import type { Message } from "@/types";
 import { MessageRoleEnum, MessageStatusEnum, MessageType } from "@/types";
 import styles from "./index.module.less";
@@ -97,8 +98,15 @@ export const MessageItem = memo(function MessageItem({
             color: isAncestor ? "text.secondary" : "text.primary",
           }}
         >
+          {/* 思考中骨架屏 — 首个 token 到达前 */}
+          {message.status === MessageStatusEnum.THINKING && (
+            <ThinkingSkeleton />
+          )}
+
           {/* Markdown 内容 */}
-          <MarkdownContent content={message.content} />
+          {message.status !== MessageStatusEnum.THINKING && (
+            <MarkdownContent content={message.content} />
+          )}
 
           {/* 流式生成指示器 */}
           {message.status === MessageStatusEnum.STREAMING && (
@@ -135,8 +143,9 @@ export const MessageItem = memo(function MessageItem({
             </Box>
           )}
 
-          {/* 底部工具栏：流式生成中隐藏 */}
-          {message.status !== MessageStatusEnum.STREAMING && (
+          {/* 底部工具栏：流式生成中 / 思考中隐藏 */}
+          {message.status !== MessageStatusEnum.STREAMING &&
+            message.status !== MessageStatusEnum.THINKING && (
             <MessageActions
               content={message.content}
               messageId={message.id}

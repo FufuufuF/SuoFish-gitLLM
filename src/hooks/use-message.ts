@@ -159,6 +159,17 @@ export function useMessage(threadId?: string | number | null) {
         threadId,
       });
 
+      // 立即插入 AI 占位消息（THINKING 态），首个 token 到达后切换为 STREAMING
+      const streamingMsgId = `streaming-${threadId}-${Date.now()}`;
+      startStreaming(threadId, {
+        id: streamingMsgId,
+        role: MessageRoleEnum.ASSISTANT,
+        content: "",
+        status: MessageStatusEnum.THINKING,
+        timestamp: new Date(),
+        threadId,
+      });
+
       try {
         const stream = chatStream(
           {
@@ -186,14 +197,8 @@ export function useMessage(threadId?: string | number | null) {
 
             case ChatStreamEventType.TOKEN: {
               if (!hasStartedStreaming) {
-                startStreaming(threadId, {
-                  id: `streaming-${threadId}-${Date.now()}`,
-                  role: MessageRoleEnum.ASSISTANT,
-                  content: "",
-                  status: MessageStatusEnum.STREAMING,
-                  timestamp: new Date(),
-                  threadId,
-                });
+                // 将占位消息从 THINKING 切换为 STREAMING
+                updateMessageStatus(threadId, streamingMsgId, MessageStatusEnum.STREAMING);
                 hasStartedStreaming = true;
               }
               // 积累 token，下一帧批量写入 store

@@ -73,6 +73,17 @@ export function useChatOrchestrator() {
       threadId: optimisticThreadId,
     });
 
+    // 立即插入 AI 占位消息（THINKING 态），首个 token 到达后切换为 STREAMING
+    const streamingMsgId = `streaming-${optimisticThreadId}-${Date.now()}`;
+    startStreaming(optimisticThreadId, {
+      id: streamingMsgId,
+      role: MessageRoleEnum.ASSISTANT,
+      content: "",
+      status: MessageStatusEnum.THINKING,
+      timestamp: new Date(),
+      threadId: optimisticThreadId,
+    });
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     setIsStreaming(true);
@@ -127,14 +138,8 @@ export function useChatOrchestrator() {
 
           case ChatStreamEventType.TOKEN: {
             if (!hasStartedStreaming) {
-              startStreaming(optimisticThreadId, {
-                id: `streaming-${optimisticThreadId}-${Date.now()}`,
-                role: MessageRoleEnum.ASSISTANT,
-                content: "",
-                status: MessageStatusEnum.STREAMING,
-                timestamp: new Date(),
-                threadId: optimisticThreadId,
-              });
+              // 将占位消息从 THINKING 切换为 STREAMING
+              updateMessageStatus(optimisticThreadId, streamingMsgId, MessageStatusEnum.STREAMING);
               hasStartedStreaming = true;
             }
             appendStreamingContent(optimisticThreadId, event.data.content);
