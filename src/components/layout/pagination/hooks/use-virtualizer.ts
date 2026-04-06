@@ -167,7 +167,7 @@ export function useVirtualizer({
   );
 
   // count 变化时同步 cache（尾部追加 / 裁剪）
-  useEffect(() => {
+  useLayoutEffect(() => {
     syncCache(count);
     recalculate();
   }, [count, syncCache, recalculate]);
