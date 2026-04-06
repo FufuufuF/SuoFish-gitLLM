@@ -380,7 +380,7 @@ export function useVirtualizer({
       renderedBottom < scrollTop + clientHeight &&
       lastItem.index < cache.length - 1
     ) {
-      recalculate();
+      recalculate(); // 递归重渲染
     }
   }, [virtualState, scrollContainerRef, recalculate]);
 
