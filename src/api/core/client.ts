@@ -2,6 +2,28 @@ import axios, { type AxiosInstance } from "axios";
 import { API_CONFIG } from "./config";
 import type { PostSseOptions, SseEvent } from "./types";
 import { parseSseChunk } from "./utils";
+import { useToastStore } from "@/stores/toast-store";
+
+const DEFAULT_SSE_ERROR_MESSAGE = "请求失败，请稍后重试";
+
+interface SseErrorPayload {
+  code?: number;
+  message: string;
+  error_type?: string;
+}
+
+const isSseErrorPayload = (data: unknown): data is SseErrorPayload => {
+  if (!data || typeof data !== "object") return false;
+  const maybeData = data as { message?: unknown };
+  return typeof maybeData.message === "string";
+};
+
+const resolveSseErrorMessage = (data: unknown): string => {
+  if (isSseErrorPayload(data)) {
+    return data.message;
+  }
+  return DEFAULT_SSE_ERROR_MESSAGE;
+};
 
 export class ApiClient {
   private baseUrl: string;
@@ -90,6 +112,11 @@ export class ApiClient {
           if (buffer.trim()) {
             const maybeEvent = parseSseChunk<T>(buffer);
             if (maybeEvent) {
+              if (maybeEvent.type === "error") {
+                const message = resolveSseErrorMessage(maybeEvent.data);
+                useToastStore.getState().showError(message);
+                throw new Error(message);
+              }
               yield maybeEvent;
             }
           }
@@ -103,6 +130,11 @@ export class ApiClient {
           buffer = buffer.slice(separatorIndex + 2);
           const maybeEvent = parseSseChunk<T>(rawEvent);
           if (maybeEvent) {
+            if (maybeEvent.type === "error") {
+              const message = resolveSseErrorMessage(maybeEvent.data);
+              useToastStore.getState().showError(message);
+              throw new Error(message);
+            }
             yield maybeEvent;
           }
           separatorIndex = buffer.indexOf("\n\n");

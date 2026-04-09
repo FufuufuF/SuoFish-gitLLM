@@ -76,7 +76,7 @@ export function useThreadListLoader(
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (chatSessionId == null || threads.length > 0) return;
+    if (chatSessionId == null || chatSessionId < 0 || threads.length > 0) return;
 
     let cancelled = false;
     setIsLoading(true);

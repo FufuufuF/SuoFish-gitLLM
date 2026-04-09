@@ -61,7 +61,7 @@ export function useMessage(threadId?: string | number | null) {
    */
   const fetchMessages = useCallback(
     async (cursor?: string, limit: number = 5) => {
-      if (!threadId || typeof threadId === "string") return; // 临时 threadId 阶段不请求
+      if (!threadId || typeof threadId === "string" || threadId < 0) return; // 临时 threadId（含乐观负数 ID）阶段不请求
 
       try {
         const response = await getMessageList({
@@ -95,7 +95,7 @@ export function useMessage(threadId?: string | number | null) {
    */
   const fetchMoreMessages = useCallback(
     async (cursor?: string): Promise<LoadMoreResult> => {
-      if (!threadId || typeof threadId === "string") {
+      if (!threadId || typeof threadId === "string" || threadId < 0) {
         return { hasMore: false };
       }
       const response = await fetchMessages(cursor);
