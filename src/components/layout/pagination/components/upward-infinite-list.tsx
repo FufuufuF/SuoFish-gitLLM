@@ -2,6 +2,7 @@ import {
   useCallback,
   useRef,
   useEffect,
+  useLayoutEffect,
   useImperativeHandle,
   forwardRef,
 } from "react";
@@ -43,6 +44,14 @@ export interface UpwardInfiniteListProps {
    * 用于判断空状态，因为组件自身不感知 items。
    */
   isEmpty?: boolean;
+  /** 可选：外部传入滚动容器 ref，用于与子组件（如 VirtualList）共享滚动容器 */
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+  /**
+   * 是否由组件自身管理滚动位置。默认 true。
+   * 设为 false 时不做初始 scrollToBottom 和 prepend 后的 scrollTop 补偿，
+   * 适用于滚动管理由外部组件（如 VirtualList）全权负责的场景。
+   */
+  manageScroll?: boolean;
   /** 容器自定义样式 */
   sx?: SxProps<Theme>;
 }
@@ -53,7 +62,7 @@ export const UpwardInfiniteList = forwardRef<
   UpwardInfiniteListHandle,
   UpwardInfiniteListProps
 >(function UpwardInfiniteList(
-  { fetchMore, children, renderLoading, renderError, renderEmpty, isEmpty, sx },
+  { fetchMore, children, renderLoading, renderError, renderEmpty, isEmpty, containerRef: externalContainerRef, manageScroll = true, sx },
   ref,
 ) {
   // ----- 默认状态 UI -----
@@ -71,7 +80,8 @@ export const UpwardInfiniteList = forwardRef<
   } = usePaginationLoader({ fetchMore });
 
   // ----- Refs -----
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = externalContainerRef ?? internalContainerRef;
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
 
@@ -94,7 +104,7 @@ export const UpwardInfiniteList = forwardRef<
   // ----- 加载更多（保留向上插入后的滚动位置修正） -----
   const loadMoreWithScrollFix = useCallback(async () => {
     const container = containerRef.current;
-    const shouldFixScroll = !!container && !isInitialLoading;
+    const shouldFixScroll = manageScroll && !!container && !isInitialLoading;
 
     // 在加载前记录当前 scrollHeight，用于后续修正滚动位置
     const prevScrollHeight = container?.scrollHeight ?? 0;
@@ -111,11 +121,11 @@ export const UpwardInfiniteList = forwardRef<
     }
 
     return result;
-  }, [isInitialLoading, tryAutoLoad]);
+  }, [isInitialLoading, tryAutoLoad, containerRef, manageScroll]);
 
   const retryWithScrollFix = useCallback(async () => {
     const container = containerRef.current;
-    const shouldFixScroll = !!container && !isInitialLoading;
+    const shouldFixScroll = manageScroll && !!container && !isInitialLoading;
     const prevScrollHeight = container?.scrollHeight ?? 0;
 
     const result = await retry();
@@ -127,7 +137,7 @@ export const UpwardInfiniteList = forwardRef<
     }
 
     return result;
-  }, [isInitialLoading, retry]);
+  }, [isInitialLoading, retry, containerRef, manageScroll]);
 
   // ----- 初始加载 -----
   useEffect(() => {
@@ -137,12 +147,15 @@ export const UpwardInfiniteList = forwardRef<
   }, []);
 
   // ----- 初始加载完成后滚动到底部，展示最新内容 -----
-  useEffect(() => {
-    if (!isInitialLoading) {
+  // 使用 useLayoutEffect 确保在浏览器绘制前就设置 scrollTop，
+  // 配合 VirtualList 的 auto-fill 机制（也在 useLayoutEffect 中）
+  // 实现 Double Render, Single Paint。
+  useLayoutEffect(() => {
+    if (manageScroll && !isInitialLoading) {
       // instant：首次渲染不需要滚动动画
       bottomAnchorRef.current?.scrollIntoView({ behavior: "instant" });
     }
-  }, [isInitialLoading]);
+  }, [isInitialLoading, manageScroll]);
 
   // ----- 顶部哨兵：IntersectionObserver 触顶检测 -----
   useEffect(() => {

@@ -13,6 +13,8 @@ export interface UseVirtualizerOptions {
   overscan?: number;
   /** 从 index 提取唯一 key（用于 position cache 索引） */
   getItemKey: (index: number) => string | number;
+  /** 初始锚定位置：'start' 渲染顶部（默认）；'end' 自动滚动到底部 */
+  initialAnchor?: 'start' | 'end';
 }
 
 export interface VirtualItem {
@@ -33,8 +35,6 @@ export interface UseVirtualizerResult {
   totalHeight: number;
   /** 测量回调 —— 由 renderItem 包裹层在 DOM 挂载/变化后调用 */
   measureItem: (index: number, node: HTMLElement | null) => void;
-  /** 通知 items 数组在头部插入了 count 个新项（修正 cache） */
-  notifyPrepend: (count: number) => void;
   /** 滚动到指定 index */
   scrollToIndex: (index: number, behavior?: ScrollBehavior) => void;
 }
@@ -48,6 +48,8 @@ interface CacheEntry {
   bottom: number;
   measured: boolean;
 }
+
+type ScrollAnchorMode = 'normal' | 'initial-end' | 'prepend';
 
 // ===== 二分查找：找到第一个 bottom > target 的 entry =====
 
@@ -73,6 +75,7 @@ export function useVirtualizer({
   scrollContainerRef,
   overscan = 5,
   getItemKey,
+  initialAnchor = 'start',
 }: UseVirtualizerOptions): UseVirtualizerResult {
   // Position cache，与 count 同步
   const cacheRef = useRef<CacheEntry[]>([]);
@@ -90,9 +93,21 @@ export function useVirtualizer({
 
   // 保存最新的 getItemKey 到 ref，避免 stale closure
   const getItemKeyRef = useRef(getItemKey);
-  useEffect(() => {
-    getItemKeyRef.current = getItemKey;
-  }, [getItemKey]);
+
+  // 追踪上一次 count，用于区分初始填充 / prepend / append
+  const prevCountRef = useRef(0);
+  // 当前滚动锚定模式：normal（常规）/ initial-end（首屏锚底）/ prepend（向上分页锚定）
+  const anchorModeRef = useRef<ScrollAnchorMode>('normal');
+  // 首屏锚底稳定性：等待总高度稳定后退出，避免首轮预估高度导致提前退出
+  const initialEndStableFramesRef = useRef(0);
+  const initialEndLastTotalHeightRef = useRef<number | null>(null);
+  // 标记：prepend 后需要补偿的滚动位置（在高度收敛前持续绝对锚定）
+  const pendingPrependRef = useRef<{
+    count: number;
+    savedScrollTop: number;
+    stableFrames: number;
+    lastFirstOldItemTop: number | null;
+  } | null>(null);
 
   // ===== 连锁更新：从 index 处开始重算后续所有 entry 的 top/bottom =====
   const cascadeUpdate = useCallback((fromIndex: number) => {
@@ -146,31 +161,82 @@ export function useVirtualizer({
       const cache = cacheRef.current;
       if (cache.length === newCount) return;
 
-      if (cache.length < newCount) {
-        // 尾部追加
-        for (let i = cache.length; i < newCount; i++) {
-          const prevBottom = i > 0 ? cache[i - 1].bottom : 0;
-          cache.push({
-            key: getItemKeyRef.current(i),
-            height: estimatedItemHeight,
-            top: prevBottom,
-            bottom: prevBottom + estimatedItemHeight,
-            measured: false,
-          });
+      const diff = newCount - cache.length;
+
+      if (diff > 0) {
+        // 数量增加：判断是 prepend 还是 append
+        const isPrepend =
+          cache.length > 0 &&
+          cache[0].key !== getItemKeyRef.current(0);
+
+        if (isPrepend) {
+          // 头部插入：新 entry 放在头部，已有 entry 的 key 右移
+          // 头部插入存在问题: 只是更新了key, 但是其他信息都没有更新, 导致key和item的对应关系不正确
+          const newEntries: CacheEntry[] = [];
+          for (let i = 0; i < diff; i++) {
+            newEntries.push({
+              key: getItemKeyRef.current(i),
+              height: estimatedItemHeight,
+              top: 0,
+              bottom: 0,
+              measured: false,
+            });
+          }
+          // 更新已有 entry 的 key（index 偏移了 diff）
+          for (let i = 0; i < cache.length; i++) {
+            cache[i].key = getItemKeyRef.current(i + diff);
+          }
+          cacheRef.current = [...newEntries, ...cache];
+          cascadeUpdate(0);
+          // 记录 prepend 信息：count + 补偿前的 scrollTop 快照
+          // 在 auto-fill useLayoutEffect 中、Phantom 高度更新 + items 测量后，
+          // 用 cache[count].top（包含已测量高度）精确计算新的 scrollTop
+          pendingPrependRef.current = {
+            count: diff,
+            savedScrollTop: scrollContainerRef.current?.scrollTop ?? 0,
+            stableFrames: 0,
+            lastFirstOldItemTop: null,
+          };
+          anchorModeRef.current = 'prepend';
+        } else {
+          // 尾部追加
+          for (let i = cache.length; i < newCount; i++) {
+            const prevBottom = i > 0 ? cache[i - 1].bottom : 0;
+            cache.push({
+              key: getItemKeyRef.current(i),
+              height: estimatedItemHeight,
+              top: prevBottom,
+              bottom: prevBottom + estimatedItemHeight,
+              measured: false,
+            });
+          }
         }
       } else {
         // 尾部裁剪
         cache.length = newCount;
       }
     },
-    [estimatedItemHeight],
+    [estimatedItemHeight, cascadeUpdate, scrollContainerRef],
   );
 
   // count 变化时同步 cache（尾部追加 / 裁剪）
   useLayoutEffect(() => {
+    const prevCount = prevCountRef.current;
+    getItemKeyRef.current = getItemKey;
     syncCache(count);
+
+    // 初始填充（cache 从 0 → count）且锚定底部：标记需要在 Phantom 高度生效后滚动
+    if (prevCount === 0 && count > 0 && initialAnchor === 'end') {
+      anchorModeRef.current = 'initial-end';
+      initialEndStableFramesRef.current = 0;
+      initialEndLastTotalHeightRef.current = null;
+    }
+
+    // 这里需要在 layout 阶段同步刷新可视窗口，保证首次锚定与 scrollTop 修正在绘制前完成。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     recalculate();
-  }, [count, syncCache, recalculate]);
+    prevCountRef.current = count;
+  }, [count, syncCache, recalculate, getItemKey, initialAnchor]);
 
   // ===== measureItem：测量某个 index 的真实高度 =====
   const measureItem = useCallback(
@@ -209,9 +275,9 @@ export function useVirtualizer({
 
       // 视口锚定：仅当被测量 item 位于当前视口上方时，补偿 scrollTop
       const container = scrollContainerRef.current;
-      if (container) {
+      if (container && anchorModeRef.current === 'normal') {
         const viewportTop = container.scrollTop;
-        if (entry.bottom <= viewportTop + measuredHeight) {
+        if (entry.top < viewportTop) {
           container.scrollTop += diff;
         }
       }
@@ -255,7 +321,7 @@ export function useVirtualizer({
         }
 
         // 视口锚定检查
-        if (container) {
+        if (container && anchorModeRef.current === 'normal') {
           const viewportTop = container.scrollTop;
           if (entry.top < viewportTop) {
             needsAnchorCompensation = true;
@@ -313,40 +379,6 @@ export function useVirtualizer({
     };
   }, [scrollContainerRef, recalculate]);
 
-  // ===== notifyPrepend：向上翻页在头部插入 count 个新项 =====
-  const notifyPrepend = useCallback(
-    (prependCount: number) => {
-      if (prependCount <= 0) return;
-
-      const cache = cacheRef.current;
-
-      // 在头部插入新 entry
-      const newEntries: CacheEntry[] = [];
-      for (let i = 0; i < prependCount; i++) {
-        newEntries.push({
-          key: getItemKeyRef.current(i),
-          height: estimatedItemHeight,
-          top: 0,
-          bottom: 0,
-          measured: false,
-        });
-      }
-
-      // 更新已有 entry 的 key（index 偏移了 prependCount）
-      for (let i = 0; i < cache.length; i++) {
-        cache[i].key = getItemKeyRef.current(i + prependCount);
-      }
-
-      // 拼接：新 entry 放在头部
-      cacheRef.current = [...newEntries, ...cache];
-
-      // 从头开始重算所有位置
-      cascadeUpdate(0);
-      recalculate();
-    },
-    [estimatedItemHeight, cascadeUpdate, recalculate],
-  );
-
   // ===== scrollToIndex =====
   const scrollToIndex = useCallback(
     (index: number, behavior: ScrollBehavior = "smooth") => {
@@ -362,11 +394,75 @@ export function useVirtualizer({
     [scrollContainerRef],
   );
 
-  // ===== 自动填充：确保渲染内容铺满视口 =====
+  // ===== 自动填充 + 滚动修复：统一在 Phantom 高度生效后处理 =====
   useLayoutEffect(() => {
     const container = scrollContainerRef.current;
-    const { virtualItems: currentItems } = virtualState;
-    if (!container || currentItems.length === 0) return;
+    const { virtualItems: currentItems, totalHeight } = virtualState;
+    if (!container) return;
+
+    // ---- prepend 后的 scrollTop 持续精确锚定 ----
+    // 在 prepend 区域高度收敛前持续执行绝对锚定，避免“补一次后继续下挤”。
+    const pending = pendingPrependRef.current;
+    if (anchorModeRef.current === 'prepend' && pending) {
+      const firstOldItemTop = cacheRef.current[pending.count]?.top ?? 0;
+      container.scrollTop = pending.savedScrollTop + firstOldItemTop;
+
+      const prependStable =
+        pending.lastFirstOldItemTop !== null
+        && Math.abs(firstOldItemTop - pending.lastFirstOldItemTop) < 0.5;
+      pending.stableFrames = prependStable ? pending.stableFrames + 1 : 0;
+      pending.lastFirstOldItemTop = firstOldItemTop;
+
+      const prependMeasured = cacheRef.current
+        .slice(0, pending.count)
+        .every((entry) => entry?.measured);
+
+      // 优先等待 prepend 区域测量完成；若长期未进入测量，也在稳定若干帧后兜底退出，避免模式粘滞。
+      if (
+        (prependMeasured && pending.stableFrames >= 1)
+        || pending.stableFrames >= 3
+      ) {
+        pendingPrependRef.current = null;
+        anchorModeRef.current = 'normal';
+      }
+
+      // 在 prepend 锚定阶段必须同步刷新，否则会出现一帧可见跳动。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      recalculate();
+      return;
+    }
+
+    // ---- 初始填充后滚动到底部 ----
+    // 在可见区域测量与高度收敛前持续锚底，避免首轮预估高度导致提前退出。
+    if (anchorModeRef.current === 'initial-end' && currentItems.length > 0) {
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      container.scrollTop = Math.max(0, maxScroll);
+
+      const prevTotalHeight = initialEndLastTotalHeightRef.current;
+      const totalHeightStable =
+        prevTotalHeight !== null
+        && Math.abs(totalHeight - prevTotalHeight) < 0.5;
+      initialEndStableFramesRef.current =
+        totalHeightStable ? initialEndStableFramesRef.current + 1 : 0;
+      initialEndLastTotalHeightRef.current = totalHeight;
+
+      const allMeasured = currentItems.every(v => cacheRef.current[v.index]?.measured);
+      // 首选“可见项测量完成后退出”；若测量信号异常缺失，也在稳定若干帧后兜底退出。
+      if (
+        (allMeasured && initialEndStableFramesRef.current >= 1)
+        || initialEndStableFramesRef.current >= 3
+      ) {
+        anchorModeRef.current = 'normal';
+        initialEndStableFramesRef.current = 0;
+        initialEndLastTotalHeightRef.current = null;
+      }
+
+      recalculate();
+      return;
+    }
+
+    // ---- 自动填充：确保渲染内容铺满视口 ----
+    if (currentItems.length === 0) return;
 
     const lastItem = currentItems[currentItems.length - 1];
     const cache = cacheRef.current;
@@ -375,12 +471,11 @@ export function useVirtualizer({
     const scrollTop = container.scrollTop;
     const clientHeight = container.clientHeight;
 
-    // 如果渲染内容未填满视口且还有更多 item 可以渲染
     if (
       renderedBottom < scrollTop + clientHeight &&
       lastItem.index < cache.length - 1
     ) {
-      recalculate(); // 递归重渲染
+      recalculate();
     }
   }, [virtualState, scrollContainerRef, recalculate]);
 
@@ -388,7 +483,6 @@ export function useVirtualizer({
     virtualItems: virtualState.virtualItems,
     totalHeight: virtualState.totalHeight,
     measureItem,
-    notifyPrepend,
     scrollToIndex,
   };
 }

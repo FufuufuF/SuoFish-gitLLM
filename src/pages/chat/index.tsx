@@ -1,11 +1,12 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Box } from "@mui/material";
-import { ChatInput, MessageList } from "./components";
+import { ChatInput, MessageItem, ThreadForkDivider } from "./components";
 import {
   UpwardInfiniteList,
   type UpwardInfiniteListHandle,
 } from "@/components/layout/pagination";
+import { VirtualList, type VirtualListHandle } from "@/components/layout/virtual-list";
 import { ThreadForkDialog } from "@/components/common/thread-fork-dialog";
 import { ThreadMergeDrawer } from "@/feature/thread-branch-graph/components/thread-merge-drawer";
 import { useMessage } from "../../hooks/use-message";
@@ -14,6 +15,7 @@ import { useChatSessionStore } from "@/stores/chat-session-store";
 import { useMergeStore } from "@/stores/merge-store";
 import { useThread } from "@/hooks/use-thread";
 import { useThreadStore } from "@/stores/thread-store";
+import type { Message } from "@/types";
 
 export function ChatPage() {
   const { chatSessionId: urlSessionId } = useParams<{
@@ -72,6 +74,8 @@ export function ChatPage() {
     isStreaming,
   } = useMessage(activeThreadId);
   const listRef = useRef<UpwardInfiniteListHandle>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const virtualListRef = useRef<VirtualListHandle>(null);
   const isAnyStreaming = isStreaming || isFirstMessageStreaming;
 
   const handleStopGeneration = () => {
@@ -107,6 +111,17 @@ export function ChatPage() {
       setActiveSessionId(parsedUrlSessionId);
     }
   }, [isValidUrlSession, parsedUrlSessionId, setActiveSessionId]);
+
+  // ----- 分叉点分隔栏逻辑（从 MessageList 迁入）-----
+  const firstCurrentIdx = useMemo(() => {
+    if (activeThreadId === null || messages.length === 0) return -1;
+    return messages.findIndex(
+      (msg) => msg.threadId !== null && msg.threadId === activeThreadId,
+    );
+  }, [messages, activeThreadId]);
+
+  const isAllAncestor = activeThreadId !== null && firstCurrentIdx === -1;
+  const showDivider = isAllAncestor || firstCurrentIdx > 0;
 
   // ----- 消息发送 -----
   const handleSend = async (content: string) => {
@@ -155,15 +170,38 @@ export function ChatPage() {
       >
         <UpwardInfiniteList
           ref={listRef}
+          containerRef={scrollRef}
           key={activeThreadId ?? "new"}
           fetchMore={fetchMoreMessages}
           isEmpty={messages.length === 0}
-          sx={{ flex: 1, minHeight: 0 }}
+          manageScroll={false}
+          sx={{ flex: 1, minHeight: 0, width: "100%" }}
         >
-          <MessageList
-            messages={messages}
-            activeThreadId={activeThreadId}
-            parentThreadTitle={parentThreadTitle}
+          <VirtualList
+            ref={virtualListRef}
+            scrollContainerRef={scrollRef}
+            items={messages}
+            getItemKey={(msg: Message) => msg.id}
+            estimatedItemHeight={120}
+            overscan={5}
+            initialAnchor="end"
+            sx={{ py: 2 }}
+            renderItem={(message: Message, index: number) => {
+            //   console.log("Rendering message:", message);
+              const isAncestor =
+                isAllAncestor || (firstCurrentIdx > 0 && index < firstCurrentIdx);
+              return (
+                <>
+                  {showDivider && !isAllAncestor && index === firstCurrentIdx && (
+                    <ThreadForkDivider parentThreadTitle={parentThreadTitle} />
+                  )}
+                  <MessageItem message={message} isAncestor={isAncestor} />
+                  {showDivider && isAllAncestor && index === messages.length - 1 && (
+                    <ThreadForkDivider parentThreadTitle={parentThreadTitle} />
+                  )}
+                </>
+              );
+            }}
           />
         </UpwardInfiniteList>
         <Box sx={{ width: "80%", flexShrink: 0 }}>

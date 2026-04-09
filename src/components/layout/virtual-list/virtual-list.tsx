@@ -18,6 +18,8 @@ export interface VirtualListProps<T> {
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   /** 可视区域上下各额外渲染的 item 数量。默认 5 */
   overscan?: number;
+  /** 初始锚定位置：'start' 渲染顶部（默认）；'end' 自动滚动到底部 */
+  initialAnchor?: 'start' | 'end';
   /** Phantom 容器自定义样式 */
   sx?: SxProps<Theme>;
 }
@@ -25,8 +27,6 @@ export interface VirtualListProps<T> {
 export interface VirtualListHandle {
   /** 滚动到指定 item（按 key 查找） */
   scrollToItem: (key: string | number, behavior?: ScrollBehavior) => void;
-  /** 通知 items 数组在头部插入了 count 个新项（用于向上翻页后修正 position cache） */
-  notifyPrepend: (count: number) => void;
 }
 
 // ===== 单个虚拟 item 的测量包裹容器 =====
@@ -82,6 +82,7 @@ function VirtualListInner<T>(
     estimatedItemHeight = 120,
     scrollContainerRef,
     overscan = 5,
+    initialAnchor,
     sx,
   }: VirtualListProps<T>,
   ref: React.ForwardedRef<VirtualListHandle>,
@@ -92,13 +93,14 @@ function VirtualListInner<T>(
     [items, getItemKey],
   );
 
-  const { virtualItems, totalHeight, measureItem, notifyPrepend, scrollToIndex } =
+  const { virtualItems, totalHeight, measureItem, scrollToIndex } =
     useVirtualizer({
       count: items.length,
       estimatedItemHeight,
       scrollContainerRef,
       overscan,
       getItemKey: getItemKeyByIndex,
+      initialAnchor,
     });
 
   // 构建 key → index 映射（用于 scrollToItem）
@@ -118,9 +120,7 @@ function VirtualListInner<T>(
         scrollToIndex(index, behavior);
       }
     },
-    notifyPrepend,
-  }), [keyToIndexMap, scrollToIndex, notifyPrepend]);
-
+  }), [keyToIndexMap, scrollToIndex]);
   return (
     <Box
       role="list"
@@ -131,7 +131,8 @@ function VirtualListInner<T>(
         ...sx as object,
       }}
     >
-      {virtualItems.map((vItem) => (
+      {virtualItems.map((vItem) => {
+        return (
         <VirtualItemWrapper
           key={vItem.key}
           vItem={vItem}
@@ -140,7 +141,8 @@ function VirtualListInner<T>(
         >
           {renderItem(items[vItem.index], vItem.index)}
         </VirtualItemWrapper>
-      ))}
+      )
+      })}
     </Box>
   );
 }
