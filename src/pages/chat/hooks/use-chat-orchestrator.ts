@@ -7,6 +7,12 @@ import { useMessageStore } from "@/stores/message-store";
 import { MessageRoleEnum, MessageStatusEnum } from "@/types";
 import { mapMessageInToMessage } from "../../../hooks/use-message";
 
+const isAbortError = (error: unknown) =>
+  error instanceof DOMException && error.name === "AbortError";
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Unknown SSE error";
+
 /**
  * 新会话编排 Hook — 处理"新会话第一条消息"的跨 store 逻辑
  *
@@ -104,6 +110,19 @@ export function useChatOrchestrator() {
       let realChatSessionId: number | null = null;
       let sessionTitle: string | undefined;
 
+      const handleStreamFailure = (message: string) => {
+        console.error("Handled stream error:", message);
+        if (!hasConfirmedHumanMessage) {
+          updateMessageStatus(
+            optimisticThreadId,
+            tempMsgId,
+            MessageStatusEnum.ERROR,
+          );
+        }
+        abortStreaming(optimisticThreadId);
+        markSessionError(tempSessionId);
+      };
+
       for await (const event of stream) {
         switch (event.type) {
           case ChatStreamEventType.HUMAN_MESSAGE_CREATED: {
@@ -153,9 +172,7 @@ export function useChatOrchestrator() {
           }
 
           case ChatStreamEventType.ERROR: {
-            console.error("Stream error:", event.data.message);
-            abortStreaming(optimisticThreadId);
-            markSessionError(tempSessionId);
+            handleStreamFailure(event.data.message);
             return tempSessionId;
           }
         }
@@ -172,11 +189,14 @@ export function useChatOrchestrator() {
         navigate(`/chat/${realChatSessionId}`, { replace: true });
       }
     } catch (error) {
-      const isAborted =
-        error instanceof DOMException && error.name === "AbortError";
-      if (!isAborted) {
-        console.error("Failed to create session and send message:", error);
+      if (isAbortError(error)) {
+        abortStreaming(optimisticThreadId);
+        markSessionError(tempSessionId);
+        return tempSessionId;
       }
+
+      const errorMessage = getErrorMessage(error);
+      console.error("Failed to create session and send message:", error);
       if (!hasConfirmedHumanMessage) {
         updateMessageStatus(
           optimisticThreadId,
@@ -186,6 +206,7 @@ export function useChatOrchestrator() {
       }
       abortStreaming(optimisticThreadId);
       markSessionError(tempSessionId);
+      console.error("Intercepted SSE exception in business layer:", errorMessage);
     } finally {
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null;

@@ -14,6 +14,12 @@ import { useMessageStore } from "@/stores/message-store";
 
 const EMPTY_MESSAGES_LIST: Message[] = [];
 
+const isAbortError = (error: unknown) =>
+  error instanceof DOMException && error.name === "AbortError";
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Unknown SSE error";
+
 /**
  * 将 API 层的 MessageIn 转换为业务层的 Message
  */
@@ -181,6 +187,15 @@ export function useMessage(threadId?: string | number | null) {
         );
 
         let hasStartedStreaming = false;
+        let hasConfirmedHumanMessage = false;
+
+        const handleStreamFailure = (message: string) => {
+          console.error("Handled stream error:", message);
+          if (!hasConfirmedHumanMessage) {
+            updateMessageStatus(threadId, tempMsgId, MessageStatusEnum.ERROR);
+          }
+          abortStreaming(threadId);
+        };
 
         for await (const event of stream) {
           switch (event.type) {
@@ -192,6 +207,7 @@ export function useMessage(threadId?: string | number | null) {
                 Number(humanMsg.id),
                 MessageStatusEnum.SUCCESS,
               );
+              hasConfirmedHumanMessage = true;
               break;
             }
 
@@ -216,19 +232,21 @@ export function useMessage(threadId?: string | number | null) {
             }
 
             case ChatStreamEventType.ERROR: {
-              console.error("Stream error:", event.data.message);
-              abortStreaming(threadId);
+              handleStreamFailure(event.data.message);
               return;
             }
           }
         }
       } catch (error) {
-        const isAborted =
-          error instanceof DOMException && error.name === "AbortError";
-        if (!isAborted) {
-          console.error("Failed to send message:", error);
-          updateMessageStatus(threadId, tempMsgId, MessageStatusEnum.ERROR);
+        if (isAbortError(error)) {
+          abortStreaming(threadId);
+          return;
         }
+
+        const errorMessage = getErrorMessage(error);
+        console.error("Failed to send message:", error);
+        console.error("Intercepted SSE exception in business layer:", errorMessage);
+        updateMessageStatus(threadId, tempMsgId, MessageStatusEnum.ERROR);
         abortStreaming(threadId);
       } finally {
         // 取消可能还挂起的 rAF，并同步 flush 残留 buffer

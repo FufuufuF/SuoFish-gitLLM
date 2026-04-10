@@ -12,6 +12,7 @@ export enum ThreadType {
 export enum ThreadStatus {
   NORMAL = 1,
   MERGED = 2,
+  ERROR = 3,
 }
 
 // ==================业务数据模型==================
