@@ -5,8 +5,15 @@ import {
   IconButton,
   Skeleton,
   Box,
+  Menu,
+  MenuItem,
 } from "@mui/material";
-import { MoreVert, ErrorOutline, ChatBubbleOutline } from "@mui/icons-material";
+import {
+  MoreVert,
+  ErrorOutline,
+  ChatBubbleOutline,
+  DeleteOutline,
+} from "@mui/icons-material";
 import type { ChatSession } from "@/types";
 
 // ===== 类型定义 =====
@@ -20,8 +27,8 @@ export interface ChatSessionItemProps {
   isTitleGenerating: boolean;
   /** 点击会话项 */
   onClick: (chatSessionId: string | number) => void;
-  /** 点击操作菜单按钮 */
-  onMenuClick?: (chatSessionId: string | number, anchor: HTMLElement) => void;
+  /** 点击删除会话 */
+  onDelete?: (chatSessionId: string | number) => void | Promise<void>;
 }
 
 // ===== 辅助函数 =====
@@ -38,15 +45,18 @@ export function ChatSessionItem({
   isActive,
   isTitleGenerating,
   onClick,
-  onMenuClick,
+  onDelete,
 }: ChatSessionItemProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
 
   const sessionKey = getSessionKey(session);
   const isCreating = session.status === "creating";
   const isError = session.status === "error";
   const hasTitle = Boolean(session.title?.trim());
   const showSkeleton = isCreating && isTitleGenerating && !hasTitle;
+  const isMenuOpen = Boolean(menuAnchorEl);
+  const canDelete = typeof session.id === "number" && session.id > 0 && !isCreating;
 
   const handleClick = () => {
     onClick(sessionKey);
@@ -54,7 +64,16 @@ export function ChatSessionItem({
 
   const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); // 阻止触发 ListItemButton 的 onClick
-    onMenuClick?.(sessionKey, e.currentTarget);
+    setMenuAnchorEl(e.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setMenuAnchorEl(null);
+  };
+
+  const handleDeleteClick = () => {
+    handleCloseMenu();
+    onDelete?.(sessionKey);
   };
 
   return (
@@ -126,8 +145,8 @@ export function ChatSessionItem({
           />
         )}
 
-        {/* 操作菜单按钮 - 仅在 hover 时显示 */}
-        {isHovered && !showSkeleton && (
+        {/* 操作菜单按钮 - hover 或菜单展开时显示 */}
+        {(isHovered || isMenuOpen) && !showSkeleton && (
           <IconButton
             size="small"
             onClick={handleMenuClick}
@@ -143,6 +162,19 @@ export function ChatSessionItem({
           </IconButton>
         )}
       </Box>
+
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={isMenuOpen}
+        onClose={handleCloseMenu}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem onClick={handleDeleteClick} disabled={!canDelete || !onDelete}>
+          <DeleteOutline sx={{ fontSize: 18, mr: 1 }} />
+          删除会话
+        </MenuItem>
+      </Menu>
     </ListItemButton>
   );
 }

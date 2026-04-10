@@ -72,3 +72,14 @@ export async function updateChatSessionActiveThread(
     UpdateChatSessionActiveThreadRequest
   >(`/chat_sessions/${chat_session_id}`, { active_thread_id });
 }
+
+/**
+ * 删除会话
+ */
+export interface DeleteChatSessionRequest {
+    chat_session_id: number;
+}
+
+export async function deleteChatSession(chat_session_id: number) {
+    return apiClient.delete(`/chat_sessions/${chat_session_id}`);
+}

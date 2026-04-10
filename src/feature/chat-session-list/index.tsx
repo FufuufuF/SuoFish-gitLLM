@@ -6,6 +6,19 @@ import { ChatSessionListHeader } from "./components/chat-session-list-header";
 import { ChatSessionListEmpty } from "./components/chat-session-list-empty";
 import { ChatSessionListSkeleton } from "./components/chat-session-list-skeleton";
 import { useChatSession } from "@/hooks";
+import { useToastStore } from "@/stores/toast-store";
+
+const DEFAULT_DELETE_ERROR_MESSAGE = "删除会话失败，请稍后重试";
+
+function resolveDeleteErrorMessage(error: unknown): string {
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return DEFAULT_DELETE_ERROR_MESSAGE;
+}
 
 // ===== 组件实现 =====
 
@@ -20,7 +33,9 @@ export function ChatSessionList() {
     // 方法
     fetchSessionsForPagination, // 供 InfiniteScrollList 使用
     startNewSession, // 清空 activeSessionId
+    deleteSession,
   } = useChatSession();
+  const showToast = useToastStore((s) => s.showToast);
 
   /** 切换到已有会话（路由导航） */
   const handleSwitchSession = (chatSessionId: string | number) => {
@@ -31,6 +46,28 @@ export function ChatSessionList() {
   const handleCreateSession = () => {
     startNewSession(); // setActiveSessionId(null)
     navigate("/chat");
+  };
+
+  /** 删除会话（调用 API + toast 提示） */
+  const handleDeleteSession = async (chatSessionId: string | number) => {
+    if (typeof chatSessionId !== "number" || chatSessionId <= 0) {
+      showToast(DEFAULT_DELETE_ERROR_MESSAGE, "error");
+      return;
+    }
+
+    const isDeletingActiveSession = activeSessionId === chatSessionId;
+
+    try {
+      await deleteSession(chatSessionId);
+      showToast("删除会话成功", "success");
+
+      if (isDeletingActiveSession) {
+        startNewSession();
+        navigate("/chat");
+      }
+    } catch (error) {
+      showToast(resolveDeleteErrorMessage(error), "error");
+    }
   };
 
   return (
@@ -60,6 +97,7 @@ export function ChatSessionList() {
               isActive={isActive}
               isTitleGenerating={showTitleGenerating}
               onClick={handleSwitchSession}
+              onDelete={handleDeleteSession}
             />
           );
         }}

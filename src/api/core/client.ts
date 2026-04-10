@@ -69,6 +69,10 @@ export class ApiClient {
     return this.axios.patch(apiPath, data);
   }
 
+  public delete<D>(apiPath: string, data?: D): Promise<void> {
+    return this.axios.delete(apiPath, data ? { data } : undefined);
+  }
+
   public async *postSSE<T extends SseEvent<unknown>, D>(
     apiPath: string,
     request: D,

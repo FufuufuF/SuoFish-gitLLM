@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useChatSessionStore } from "@/stores/chat-session-store";
 import {
   getChatSessionList,
+  deleteChatSession,
   type ChatSession as ApiChatSession,
 } from "@/api/common/chat-session";
 import type { ChatSession } from "@/types";
@@ -125,6 +126,19 @@ export function useChatSession() {
     [updateSessionStatus, setTitleGenerating],
   );
 
+  // ===== 删除会话 =====
+  const deleteSession = useCallback(
+    async (chatSessionId: number) => {
+      await deleteChatSession(chatSessionId);
+      removeSession(chatSessionId);
+
+      if (activeSessionId === chatSessionId) {
+        setActiveSessionId(null);
+      }
+    },
+    [activeSessionId, removeSession, setActiveSessionId],
+  );
+
   return {
     // 状态
     sessions,
@@ -140,6 +154,7 @@ export function useChatSession() {
     switchSession,
     confirmSessionCreation,
     markSessionError,
+    deleteSession,
     removeSession,
     setTitleGenerating,
   };
