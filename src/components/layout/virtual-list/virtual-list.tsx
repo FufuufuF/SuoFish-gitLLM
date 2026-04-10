@@ -89,7 +89,14 @@ function VirtualListInner<T>(
 ) {
   // 包装 getItemKey：从 index 映射到 item key
   const getItemKeyByIndex = useCallback(
-    (index: number) => getItemKey(items[index], index),
+    (index: number) => {
+      const item = items[index];
+      // 列表长度突变时，可能会出现一帧旧索引；提供兜底 key 避免运行时崩溃
+      if (item == null) {
+        return `stale-${index}`;
+      }
+      return getItemKey(item, index);
+    },
     [items, getItemKey],
   );
 
@@ -132,6 +139,11 @@ function VirtualListInner<T>(
       }}
     >
       {virtualItems.map((vItem) => {
+        const item = items[vItem.index];
+        if (item == null) {
+          // 过滤掉过时索引，等待下一轮 recalculate 同步窗口
+          return null;
+        }
         return (
         <VirtualItemWrapper
           key={vItem.key}
@@ -139,7 +151,7 @@ function VirtualListInner<T>(
           totalCount={items.length}
           measureItem={measureItem}
         >
-          {renderItem(items[vItem.index], vItem.index)}
+          {renderItem(item, vItem.index)}
         </VirtualItemWrapper>
       )
       })}
