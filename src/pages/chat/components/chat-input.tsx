@@ -90,7 +90,7 @@ export function ChatInput({
         sx={{
           display: "flex",
           flexDirection: "column",
-          borderRadius: 8,
+          borderRadius: 3,
           width: "sm",
           bgcolor: "action.hover",
           border: 1,
