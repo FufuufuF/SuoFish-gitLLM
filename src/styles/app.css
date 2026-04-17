@@ -1,0 +1,118 @@
+@import "tailwindcss";
+@import "./animations.css";
+@import "./markdown.css";
+@import "./scrollbar.css";
+
+/* ─── Cyber Neon Design Token System ─── */
+/* 单一真相源：所有颜色、圆角、字体、阴影均在此定义 */
+/* 默认值为暗色模式，.light class 覆写为亮色模式 */
+
+@theme {
+  /* ── 颜色 ── */
+  --color-bg-default: #09090b;
+  --color-bg-paper: #111113;
+  --color-bg-elevated: #1a1a1d;
+  --color-bg-input: rgba(255, 255, 255, 0.04);
+
+  --color-primary: #00e5a0;
+  --color-primary-hover: #00c98c;
+  --color-primary-glow: rgba(0, 229, 160, 0.15);
+  --color-primary-glow-strong: rgba(0, 229, 160, 0.35);
+  --color-primary-contrast: #09090b;
+
+  --color-secondary: #a78bfa;
+  --color-secondary-hover: #9474e8;
+  --color-secondary-glow: rgba(167, 139, 250, 0.15);
+
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-disabled: rgba(255, 255, 255, 0.38);
+  --color-text-muted: rgba(255, 255, 255, 0.5);
+
+  --color-divider: rgba(255, 255, 255, 0.08);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+
+  --color-action-hover: rgba(255, 255, 255, 0.04);
+  --color-action-selected: rgba(255, 255, 255, 0.06);
+  --color-action-disabled-bg: rgba(255, 255, 255, 0.06);
+
+  --color-error: #ef4444;
+  --color-error-glow: rgba(239, 68, 68, 0.15);
+  --color-warning: #f59e0b;
+  --color-warning-contrast: #09090b;
+  --color-success: #22c55e;
+  --color-info: #3b82f6;
+
+  /* ── 圆角 ── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+
+  /* ── 字体 ── */
+  --font-sans: "Outfit", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Fira Code", "Consolas", monospace;
+
+  /* ── 阴影 (Glow Effects) ── */
+  --shadow-glow-primary: 0 0 20px rgba(0, 229, 160, 0.15), 0 0 60px rgba(0, 229, 160, 0.05);
+  --shadow-glow-primary-strong: 0 0 20px rgba(0, 229, 160, 0.3), 0 0 60px rgba(0, 229, 160, 0.1);
+  --shadow-glow-secondary: 0 0 20px rgba(167, 139, 250, 0.15), 0 0 60px rgba(167, 139, 250, 0.05);
+  --shadow-glow-error: 0 0 20px rgba(239, 68, 68, 0.15);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-glass-sm: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── 亮色模式覆写 ─── */
+.light {
+  --color-bg-default: #fafafa;
+  --color-bg-paper: #ffffff;
+  --color-bg-elevated: #f5f5f5;
+  --color-bg-input: rgba(0, 0, 0, 0.03);
+
+  --color-primary: #0a0a0a;
+  --color-primary-hover: #262626;
+  --color-primary-glow: rgba(10, 10, 10, 0.08);
+  --color-primary-glow-strong: rgba(10, 10, 10, 0.15);
+  --color-primary-contrast: #fafafa;
+
+  --color-secondary: #7c3aed;
+  --color-secondary-hover: #6d28d9;
+  --color-secondary-glow: rgba(124, 58, 237, 0.1);
+
+  --color-text-primary: #0a0a0a;
+  --color-text-secondary: #71717a;
+  --color-text-disabled: rgba(0, 0, 0, 0.38);
+  --color-text-muted: rgba(0, 0, 0, 0.5);
+
+  --color-divider: rgba(0, 0, 0, 0.08);
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.12);
+
+  --color-action-hover: rgba(0, 0, 0, 0.03);
+  --color-action-selected: rgba(0, 0, 0, 0.05);
+  --color-action-disabled-bg: rgba(0, 0, 0, 0.04);
+
+  --color-error-glow: rgba(239, 68, 68, 0.1);
+
+  --shadow-glow-primary: 0 0 20px rgba(10, 10, 10, 0.05);
+  --shadow-glow-primary-strong: 0 0 20px rgba(10, 10, 10, 0.1);
+  --shadow-glow-secondary: 0 0 20px rgba(124, 58, 237, 0.08);
+  --shadow-glow-error: 0 0 20px rgba(239, 68, 68, 0.1);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-glass-sm: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* ─── 全局基础样式 ─── */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body {
+  font-family: "Outfit", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif !important;
+  background-color: var(--color-bg-default);
+  color: var(--color-text-primary);
+}

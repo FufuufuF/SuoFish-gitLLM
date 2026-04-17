@@ -1,0 +1,153 @@
+/* ─── 动画关键帧合集 ─── */
+
+/* 淡入 + 向上滑入 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 淡入 (仅透明度) */
+@keyframes fade-in-pure {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 淡出 */
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* 流式三点脉冲 */
+@keyframes dot-pulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* 加载三点弹跳 */
+@keyframes dot-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+/* 旋转 */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 脉冲发光 */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 229, 160, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 229, 160, 0.3), 0 0 60px rgba(0, 229, 160, 0.1);
+  }
+}
+
+/* 骨架屏波纹 */
+@keyframes skeleton-wave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* 向下滑入 */
+@keyframes slide-in-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 向上滑入 */
+@keyframes slide-in-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 缩放进入 */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 缩放退出 */
+@keyframes scale-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* 从右侧滑入 */
+@keyframes slide-in-from-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* 滑出到右侧 */
+@keyframes slide-out-to-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+/* ─── Tailwind 动画工具类 ─── */
+@theme {
+  --animate-fade-in: fade-in 0.35s ease-out;
+  --animate-fade-in-pure: fade-in-pure 0.25s ease-out;
+  --animate-fade-out: fade-out 0.2s ease-out;
+  --animate-dot-pulse: dot-pulse 1.4s ease-in-out infinite;
+  --animate-dot-bounce: dot-bounce 1.4s ease-in-out infinite;
+  --animate-spin-slow: spin 2s linear infinite;
+  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
+  --animate-skeleton-wave: skeleton-wave 1.8s ease-in-out infinite;
+  --animate-slide-in-top: slide-in-from-top 0.2s ease-out;
+  --animate-slide-in-bottom: slide-in-from-bottom 0.2s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-scale-out: scale-out 0.15s ease-out;
+  --animate-slide-in-right: slide-in-from-right 0.3s ease-out;
+  --animate-slide-out-right: slide-out-to-right 0.3s ease-out;
+}

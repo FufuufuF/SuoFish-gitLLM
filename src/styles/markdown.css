@@ -1,0 +1,106 @@
+/* ─── Markdown 内容排版样式 ─── */
+/* 从 index.module.less 迁移 + 适配 Tailwind CSS 变量 */
+
+.markdown-content p {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.markdown-content h1 { font-size: 1.5em; }
+.markdown-content h2 { font-size: 1.3em; }
+.markdown-content h3 { font-size: 1.15em; }
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.markdown-content li {
+  margin: 0.25em 0;
+  line-height: 1.6;
+}
+
+.markdown-content code:not([class*="language-"]) {
+  background-color: rgba(127, 127, 127, 0.15);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: var(--font-mono);
+}
+
+.markdown-content pre {
+  margin: 1em 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.markdown-content pre > div {
+  margin: 0 !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid rgba(127, 127, 127, 0.4);
+  padding-left: 1em;
+  margin: 0.5em 0;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+  overflow-x: auto;
+  display: block;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid rgba(127, 127, 127, 0.3);
+  padding: 0.5em 1em;
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: rgba(127, 127, 127, 0.1);
+  font-weight: 600;
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid rgba(127, 127, 127, 0.3);
+  margin: 1.5em 0;
+}
+
+.markdown-content a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-content a:hover {
+  opacity: 0.8;
+}
+
+.markdown-content img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.markdown-content del {
+  opacity: 0.6;
+}
