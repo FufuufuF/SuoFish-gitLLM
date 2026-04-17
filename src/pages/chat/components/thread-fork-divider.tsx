@@ -1,16 +1,9 @@
-import { Box, Typography } from "@mui/material";
-import CallSplit from "@mui/icons-material/CallSplit";
+import { GitBranch } from "lucide-react";
 
 interface ThreadForkDividerProps {
-  /** 父线程标题，用于显示「从「xxx」切出」 */
   parentThreadTitle?: string;
 }
 
-/**
- * 分叉点分隔栏
- * - 在祖先消息区和当前分支消息区之间插入
- * - 明确标记「这里是分支起点」
- */
 export function ThreadForkDivider({
   parentThreadTitle,
 }: ThreadForkDividerProps) {
@@ -19,65 +12,17 @@ export function ThreadForkDivider({
     : "分支起点";
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        py: 1.5,
-        px: 2,
-        my: 1,
-        userSelect: "none",
-      }}
-    >
-      {/* 左侧虚线 */}
-      <Box
-        sx={{
-          flex: 1,
-          borderTop: "1.5px dashed",
-          borderColor: "primary.main",
-          opacity: 0.5,
-        }}
-      />
+    <div className="my-2 flex select-none items-center gap-2 px-4 py-3">
+      <div className="flex-1 border-t-[1.5px] border-dashed border-primary/50" />
 
-      {/* 中心内容：图标 + 文字 */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          color: "primary.main",
-          opacity: 0.8,
-          flexShrink: 0,
-        }}
-      >
-        <CallSplit
-          sx={{
-            fontSize: 16,
-            transform: "rotate(180deg)", // 让箭头朝上，表示"从上方切出"
-          }}
-        />
-        <Typography
-          variant="caption"
-          sx={{
-            fontWeight: 500,
-            letterSpacing: 0.3,
-            whiteSpace: "nowrap",
-          }}
-        >
+      <div className="flex shrink-0 items-center gap-1 text-primary/80">
+        <GitBranch size={16} className="rotate-180" />
+        <span className="whitespace-nowrap text-xs font-medium tracking-wide">
           {label}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
-      {/* 右侧虚线 */}
-      <Box
-        sx={{
-          flex: 1,
-          borderTop: "1.5px dashed",
-          borderColor: "primary.main",
-          opacity: 0.5,
-        }}
-      />
-    </Box>
+      <div className="flex-1 border-t-[1.5px] border-dashed border-primary/50" />
+    </div>
   );
 }

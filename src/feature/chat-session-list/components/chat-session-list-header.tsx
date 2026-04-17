@@ -1,57 +1,31 @@
-import { Box, Typography, IconButton, Tooltip } from "@mui/material";
-import { Add } from "@mui/icons-material";
-
-// ===== 类型定义 =====
+import { Plus } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
+import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 
 export interface ChatSessionListHeaderProps {
-  /** 点击新建会话 */
   onCreateSession: () => void;
 }
-
-// ===== 组件实现 =====
 
 export function ChatSessionListHeader({
   onCreateSession,
 }: ChatSessionListHeaderProps) {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        px: 2,
-        py: 1.5,
-        flexShrink: 0,
-      }}
-    >
-      <Typography
-        variant="subtitle2"
-        sx={{
-          color: "text.secondary",
-          fontWeight: 600,
-          letterSpacing: "0.02em",
-          textTransform: "uppercase",
-          fontSize: "1.5rem",
-        }}
-      >
+    <div className="flex shrink-0 items-center justify-between px-4 py-3">
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-text-secondary">
         对话列表
-      </Typography>
+      </h3>
 
-      <Tooltip title="新建对话" placement="right">
-        <IconButton
-          size="small"
-          onClick={onCreateSession}
-          sx={{
-            color: "text.secondary",
-            "&:hover": {
-              bgcolor: "action.hover",
-              color: "primary.main",
-            },
-          }}
-        >
-          <Add sx={{ fontSize: 20 }} />
-        </IconButton>
-      </Tooltip>
-    </Box>
+      <TooltipProvider>
+        <Tooltip content="新建对话" side="right">
+          <IconButton
+            size="sm"
+            onClick={onCreateSession}
+            className="hover:text-primary"
+          >
+            <Plus size={20} />
+          </IconButton>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
   );
 }

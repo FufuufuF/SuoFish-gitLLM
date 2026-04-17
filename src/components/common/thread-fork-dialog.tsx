@@ -1,23 +1,17 @@
 import { useState } from "react";
+import { GitBranch, Loader2 } from "lucide-react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Alert,
-  CircularProgress,
-  Box,
-} from "@mui/material";
-import { CallSplit } from "@mui/icons-material";
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export interface ThreadForkDialogProps {
   open: boolean;
   onClose: () => void;
-  /** 确认时传入用户填写的 title，外部负责调用 forkThread */
   onConfirm: (title: string) => Promise<void>;
-  /** 父 thread 名称，用于上下文提示 */
   parentThreadTitle?: string;
 }
 
@@ -55,88 +49,53 @@ export function ThreadForkDialog({
       e.preventDefault();
       handleConfirm();
     }
-    if (e.key === "Escape") {
-      handleClose();
-    }
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 3 },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          pb: 1,
-          fontWeight: 600,
-        }}
-      >
-        <CallSplit fontSize="small" color="primary" />
-        Fork 记忆分支
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
+      <DialogContent>
+        <DialogTitle>
+          <span className="flex items-center gap-2">
+            <GitBranch size={18} className="text-primary" />
+            Fork 记忆分支
+          </span>
+        </DialogTitle>
 
-      <DialogContent sx={{ pt: 1 }}>
-        <Alert severity="info" sx={{ mb: 2, fontSize: "0.8rem" }}>
-          新分支将从
-          {parentThreadTitle ? (
-            <Box component="span" sx={{ fontWeight: 600 }}>
-              「{parentThreadTitle}」
-            </Box>
-          ) : (
-            "当前分支"
-          )}
-          的最新节点开始独立演进。
-        </Alert>
-
-        <TextField
-          autoFocus
-          fullWidth
-          label="分支名称"
-          placeholder="例：探索方向 A"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-          inputProps={{ maxLength: 50 }}
-          helperText={`${title.length} / 50`}
-          size="small"
-          sx={{ mt: 0.5 }}
-        />
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-        <Button
-          onClick={handleClose}
-          disabled={loading}
-          variant="outlined"
-          size="small"
-        >
-          取消
-        </Button>
-        <Button
-          onClick={handleConfirm}
-          disabled={!canConfirm}
-          variant="contained"
-          size="small"
-          startIcon={
-            loading ? (
-              <CircularProgress size={14} color="inherit" />
+        <div className="mt-4 space-y-4">
+          <div className="rounded-md border border-info/30 bg-info/5 px-3 py-2 text-xs text-text-secondary">
+            新分支将从
+            {parentThreadTitle ? (
+              <span className="font-semibold">「{parentThreadTitle}」</span>
             ) : (
-              <CallSplit fontSize="small" />
-            )
-          }
-        >
-          确定 Fork
-        </Button>
-      </DialogActions>
+              "当前分支"
+            )}
+            的最新节点开始独立演进。
+          </div>
+
+          <div>
+            <Input
+              autoFocus
+              placeholder="例：探索方向 A"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={loading}
+              maxLength={50}
+            />
+            <p className="mt-1 text-right text-xs text-text-muted">{title.length} / 50</p>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={handleClose} disabled={loading}>
+              取消
+            </Button>
+            <Button size="sm" onClick={handleConfirm} disabled={!canConfirm}>
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <GitBranch size={14} />}
+              确定 Fork
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
     </Dialog>
   );
 }

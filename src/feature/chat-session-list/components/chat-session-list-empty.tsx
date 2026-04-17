@@ -1,43 +1,11 @@
-import { Box, Typography } from "@mui/material";
-import { ChatBubbleOutline } from "@mui/icons-material";
-
-// ===== 组件实现 =====
+import { MessageSquare } from "lucide-react";
 
 export function ChatSessionListEmpty() {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100%",
-        py: 6,
-        gap: 1.5,
-      }}
-    >
-      <ChatBubbleOutline
-        sx={{
-          fontSize: 40,
-          color: "text.disabled",
-        }}
-      />
-      <Typography
-        variant="body2"
-        sx={{
-          color: "text.secondary",
-        }}
-      >
-        暂无对话
-      </Typography>
-      <Typography
-        variant="caption"
-        sx={{
-          color: "text.disabled",
-        }}
-      >
-        点击上方按钮开始新对话
-      </Typography>
-    </Box>
+    <div className="flex h-full flex-col items-center justify-center gap-3 py-12">
+      <MessageSquare size={40} className="text-text-disabled" />
+      <p className="text-sm text-text-secondary">暂无对话</p>
+      <p className="text-xs text-text-disabled">点击上方按钮开始新对话</p>
+    </div>
   );
 }

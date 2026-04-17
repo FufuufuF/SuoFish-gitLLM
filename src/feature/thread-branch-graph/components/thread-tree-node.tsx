@@ -1,18 +1,13 @@
-import { Box, Chip, Typography } from "@mui/material";
-import { TreeItem } from "@mui/x-tree-view/TreeItem";
-// 直接从源文件导入 enum（@/types 使用 export type 形式，无法作为值使用）
+import { cn } from "@/lib/cn";
+import { TreeNode } from "@/components/ui/tree-view";
 import { ThreadStatus } from "@/types/thread";
 import type { ThreadTreeNode as ThreadTreeNodeType } from "../types";
-
-// ===== 类型定义 =====
 
 export interface ThreadTreeNodeProps {
   node: ThreadTreeNodeType;
   activeThreadId: number | null | undefined;
   onNodeClick: (threadId: number) => void;
 }
-
-// ===== 辅助函数 =====
 
 function NodeLabel({
   node,
@@ -24,55 +19,35 @@ function NodeLabel({
   isMerged: boolean;
 }) {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        opacity: isMerged ? 0.5 : 1,
-        py: 0.25,
-      }}
+    <div
+      className={cn(
+        "flex items-center gap-2 py-0.5",
+        isMerged && "opacity-50",
+      )}
     >
-      <Typography
-        variant="body2"
-        noWrap
-        sx={{
-          flex: 1,
-          color: isActive
-            ? "primary.main"
-            : isMerged
-              ? "text.disabled"
-              : "text.primary",
-          fontWeight: isActive ? 600 : 400,
-        }}
+      <span
+        className={cn(
+          "flex-1 truncate text-sm",
+          isActive && "font-semibold text-primary",
+          isMerged && "text-text-disabled",
+          !isActive && !isMerged && "text-text-primary",
+        )}
       >
         {node.title ?? "未命名分支"}
-      </Typography>
+      </span>
 
       {isMerged && (
-        <Chip
-          label="已合并"
-          size="small"
-          sx={{ height: 16, fontSize: 10, px: 0.5 }}
-        />
+        <span className="shrink-0 rounded px-1 py-0.5 text-xs font-medium text-text-disabled border border-divider">
+          已合并
+        </span>
       )}
 
       {isActive && (
-        <Box
-          sx={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            bgcolor: "primary.main",
-            flexShrink: 0,
-          }}
-        />
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
       )}
-    </Box>
+    </div>
   );
 }
-
-// ===== 组件实现（递归） =====
 
 export function ThreadTreeNode({
   node,
@@ -83,34 +58,24 @@ export function ThreadTreeNode({
   const isMerged = node.status === ThreadStatus.MERGED;
 
   return (
-    <TreeItem
+    <TreeNode
       itemId={String(node.id)}
       label={<NodeLabel node={node} isActive={isActive} isMerged={isMerged} />}
       onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         onNodeClick(node.id);
       }}
-      sx={{
-        "& .MuiTreeItem-content": {
-          borderRadius: 1,
-          py: 0.5,
-          "&:hover": {
-            bgcolor: "action.hover",
-          },
-          "&.Mui-selected, &.Mui-selected:hover": {
-            bgcolor: "action.selected",
-          },
-        },
-      }}
     >
-      {node.children.map((child) => (
-        <ThreadTreeNode
-          key={child.id}
-          node={child}
-          activeThreadId={activeThreadId}
-          onNodeClick={onNodeClick}
-        />
-      ))}
-    </TreeItem>
+      {node.children.length > 0
+        ? node.children.map((child) => (
+            <ThreadTreeNode
+              key={child.id}
+              node={child}
+              activeThreadId={activeThreadId}
+              onNodeClick={onNodeClick}
+            />
+          ))
+        : undefined}
+    </TreeNode>
   );
 }

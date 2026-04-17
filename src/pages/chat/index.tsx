@@ -1,6 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { Box } from "@mui/material";
 import { ChatInput, MessageItem, ThreadForkDivider } from "./components";
 import {
   UpwardInfiniteList,
@@ -27,12 +26,10 @@ export function ChatPage() {
     isStreaming: isFirstMessageStreaming,
   } = useChatOrchestrator();
 
-  // ----- Session 状态 -----
   const parsedUrlSessionId = urlSessionId ? Number(urlSessionId) : null;
   const isValidUrlSession =
     parsedUrlSessionId !== null && Number.isFinite(parsedUrlSessionId);
 
-  // 精确订阅：只在 activeSessionId 或 匹配的 session 自身变化时才重渲染
   const activeSessionId = useChatSessionStore((s) => s.activeSessionId);
   const setActiveSessionId = useChatSessionStore.getState().setActiveSessionId;
 
@@ -49,7 +46,6 @@ export function ChatPage() {
     confirmMerge,
   } = useThread();
 
-  // ----- 父线程标题（用于分叉点分隔栏） -----
   const parentThreadTitle = useMemo(() => {
     if (!activeSessionId || typeof activeSessionId === "string")
       return undefined;
@@ -65,7 +61,6 @@ export function ChatPage() {
     return parentThread?.title;
   }, [activeSessionId, activeThreadId]);
 
-  // ----- Message Hook -----
   const {
     messages,
     sendMessage,
@@ -86,18 +81,15 @@ export function ChatPage() {
   const [forkDialogOpen, setForkDialogOpen] = useState(false);
   const [mergeDrawerOpen, setMergeDrawerOpen] = useState(false);
 
-  // ----- Merge 流程状态 -----
   const mergePhase = useMergeStore((s) => s.mergePhase);
   const isMerging = mergePhase !== "idle" && mergePhase !== "success";
 
-  // 自动弹出：进入 previewing 阶段时打开 Drawer
   useEffect(() => {
     if (mergePhase === "previewing") {
       setMergeDrawerOpen(true);
     }
   }, [mergePhase]);
 
-  // 自动关闭：成功后关闭 Drawer 并重置
   useEffect(() => {
     if (mergePhase === "success") {
       setMergeDrawerOpen(false);
@@ -105,14 +97,12 @@ export function ChatPage() {
     }
   }, [mergePhase]);
 
-  // ----- 同步 URL chatSessionId → store（用于侧边栏高亮） -----
   useLayoutEffect(() => {
     if (isValidUrlSession) {
       setActiveSessionId(parsedUrlSessionId);
     }
   }, [isValidUrlSession, parsedUrlSessionId, setActiveSessionId]);
 
-  // ----- 分叉点分隔栏逻辑（从 MessageList 迁入）-----
   const firstCurrentIdx = useMemo(() => {
     if (activeThreadId === null || messages.length === 0) return -1;
     return messages.findIndex(
@@ -123,7 +113,6 @@ export function ChatPage() {
   const isAllAncestor = activeThreadId !== null && firstCurrentIdx === -1;
   const showDivider = isAllAncestor || firstCurrentIdx > 0;
 
-  // ----- 消息发送 -----
   const handleSend = async (content: string) => {
     if (isNewSessionMode) {
       await sendFirstMessage(content);
@@ -133,41 +122,17 @@ export function ChatPage() {
     listRef.current?.scrollToBottom("smooth");
   };
 
-  // ----- Fork 确认 -----
   const handleForkConfirm = async (title: string) => {
     await forkThread(title);
   };
 
-  // ----- Merge -----
   const handleMerge = async () => {
     await previewMerge();
   };
 
   return (
-    <Box
-      sx={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "row",
-        width: "100%",
-        height: "100%",
-        overflow: "hidden",
-      }}
-    >
-      {/* 左侧：聊天主区域 */}
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          p: 4,
-          minWidth: 0,
-          height: "100%",
-          overflow: "hidden",
-          transition: "all 0.3s ease",
-        }}
-      >
+    <div className="flex h-full w-full flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col items-center p-8 transition-all duration-300 ease-in-out">
         <UpwardInfiniteList
           ref={listRef}
           containerRef={scrollRef}
@@ -175,7 +140,7 @@ export function ChatPage() {
           fetchMore={fetchMoreMessages}
           isEmpty={messages.length === 0}
           manageScroll={false}
-          sx={{ flex: 1, minHeight: 0, width: "100%" }}
+          className="min-h-0 w-full flex-1"
         >
           <VirtualList
             ref={virtualListRef}
@@ -185,9 +150,8 @@ export function ChatPage() {
             estimatedItemHeight={120}
             overscan={5}
             initialAnchor="end"
-            sx={{ py: 2 }}
+            className="py-4"
             renderItem={(message: Message, index: number) => {
-            //   console.log("Rendering message:", message);
               const isAncestor =
                 isAllAncestor || (firstCurrentIdx > 0 && index < firstCurrentIdx);
               return (
@@ -204,7 +168,7 @@ export function ChatPage() {
             }}
           />
         </UpwardInfiniteList>
-        <Box sx={{ width: "80%", flexShrink: 0 }}>
+        <div className="w-4/5 shrink-0">
           <ChatInput
             onSend={handleSend}
             onStopGeneration={handleStopGeneration}
@@ -216,10 +180,9 @@ export function ChatPage() {
             isMerged={!isThreadStatusNormal}
             isStreaming={isAnyStreaming}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      {/* 右侧：合并 Drawer */}
       <ThreadMergeDrawer
         open={mergeDrawerOpen}
         onClose={() => {
@@ -234,6 +197,6 @@ export function ChatPage() {
         onClose={() => setForkDialogOpen(false)}
         onConfirm={handleForkConfirm}
       />
-    </Box>
+    </div>
   );
 }

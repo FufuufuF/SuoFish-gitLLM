@@ -5,7 +5,6 @@ import remarkGfm from "remark-gfm";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism-light";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import type { Components } from "react-markdown";
-import styles from "./index.module.less";
 
 interface MarkdownContentProps {
   content: string;
@@ -62,7 +61,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
               customStyle={{
                 margin: 0,
                 borderRadius: 8,
-                fontSize: "0.875rem",
+                fontSize: "0.8125rem",
               }}
             >
               {codeString}
@@ -84,7 +83,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
   // 使用 useMemo 缓存渲染结果，避免重复解析
   const renderedContent = useMemo(
     () => (
-      <div className={styles.markdownContent}>
+      <div className="markdown-content">
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
           {processedContent}
         </ReactMarkdown>

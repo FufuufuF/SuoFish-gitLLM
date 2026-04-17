@@ -1,127 +1,54 @@
-import { Box } from "@mui/material";
 import {
   SkeletonBlock,
   SkeletonLine,
   SkeletonCircle,
 } from "./primitives/skeleton-base";
 
-/**
- * 整页骨架屏
- * 用于 RootLayout 懒加载时的 Suspense fallback。
- * 布局与真实 RootLayout 一致：左侧 Sidebar + 右侧聊天区。
- */
 export function FullPageSkeleton() {
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      {/* ===== 左侧 Sidebar 骨架 ===== */}
-      <Box
-        sx={{
-          width: 480,
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-          borderRight: 1,
-          borderColor: "divider",
-          bgcolor: "background.default",
-        }}
-      >
-        {/* Tab 栏占位 */}
-        <Box
-          sx={{
-            height: 44,
-            display: "flex",
-            alignItems: "center",
-            px: 2,
-            gap: 2,
-            borderBottom: 1,
-            borderColor: "divider",
-          }}
-        >
+    <div className="flex h-screen overflow-hidden">
+      {/* 左侧 Sidebar 骨架 */}
+      <div className="flex w-[480px] shrink-0 flex-col border-r border-divider bg-bg-default">
+        <div className="flex h-11 items-center gap-4 border-b border-divider px-4">
           <SkeletonLine width={60} height={20} />
           <SkeletonLine width={60} height={20} />
-        </Box>
+        </div>
 
-        {/* 会话列表条目 */}
-        <Box
-          sx={{
-            flex: 1,
-            px: 1.5,
-            py: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 0.75,
-          }}
-        >
+        <div className="flex flex-1 flex-col gap-1.5 px-3 py-2">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Box
-              key={i}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1.5,
-                px: 1,
-                py: 0.75,
-              }}
-            >
+            <div key={i} className="flex items-center gap-3 px-2 py-1.5">
               <SkeletonCircle width={24} height={24} />
-              <Box sx={{ flex: 1 }}>
+              <div className="flex-1">
                 <SkeletonLine width={`${65 + (i % 3) * 10}%`} height={14} />
-              </Box>
-            </Box>
+              </div>
+            </div>
           ))}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      {/* ===== 右侧主区域骨架 ===== */}
-      <Box
-        sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}
-      >
-        {/* Header 占位 */}
-        <Box
-          sx={{
-            height: 56,
-            display: "flex",
-            alignItems: "center",
-            px: 2,
-            gap: 1.5,
-            borderBottom: 1,
-            borderColor: "divider",
-            flexShrink: 0,
-          }}
-        >
+      {/* 右侧主区域骨架 */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-14 shrink-0 items-center gap-3 border-b border-divider px-4">
           <SkeletonLine width={120} height={20} />
-          <Box sx={{ flex: 1 }} />
+          <div className="flex-1" />
           <SkeletonCircle width={32} height={32} />
-        </Box>
+        </div>
 
-        {/* 消息区占位 */}
-        <Box
-          sx={{
-            flex: 1,
-            px: 4,
-            py: 3,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-          }}
-        >
+        <div className="flex flex-1 flex-col gap-6 px-8 py-6">
           <MessageSkeletonRow align="left" widths={["75%", "60%", "40%"]} />
           <MessageSkeletonRow align="right" widths={["45%"]} />
           <MessageSkeletonRow align="left" widths={["80%", "55%"]} />
           <MessageSkeletonRow align="right" widths={["35%"]} />
           <MessageSkeletonRow align="left" widths={["70%", "50%", "60%"]} />
-        </Box>
+        </div>
 
-        {/* 输入框占位 */}
-        <Box sx={{ px: 4, pb: 3, flexShrink: 0 }}>
-          <SkeletonBlock width="100%" height={72} sx={{ borderRadius: 4 }} />
-        </Box>
-      </Box>
-    </Box>
+        <div className="shrink-0 px-8 pb-6">
+          <SkeletonBlock width="100%" height={72} className="rounded-2xl" />
+        </div>
+      </div>
+    </div>
   );
 }
-
-// ===== 内部辅助组件 =====
 
 interface MessageSkeletonRowProps {
   align: "left" | "right";
@@ -132,34 +59,15 @@ function MessageSkeletonRow({ align, widths }: MessageSkeletonRowProps) {
   const isLeft = align === "left";
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 1.5,
-        flexDirection: isLeft ? "row" : "row-reverse",
-      }}
-    >
+    <div className={`flex items-start gap-3 ${isLeft ? "flex-row" : "flex-row-reverse"}`}>
       {isLeft && (
-        <SkeletonCircle
-          width={28}
-          height={28}
-          sx={{ flexShrink: 0, mt: 0.25 }}
-        />
+        <SkeletonCircle width={28} height={28} className="mt-0.5 shrink-0" />
       )}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 0.75,
-          maxWidth: "65%",
-          alignItems: isLeft ? "flex-start" : "flex-end",
-        }}
-      >
+      <div className={`flex max-w-[65%] flex-col gap-1.5 ${isLeft ? "items-start" : "items-end"}`}>
         {widths.map((w, i) => (
           <SkeletonLine key={i} width={w} height={16} />
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

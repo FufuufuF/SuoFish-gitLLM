@@ -1,5 +1,5 @@
-import { IconButton } from "@mui/material";
-import { Search } from "@mui/icons-material";
+import { Search } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
 
 export function SearchButton() {
   const handleSearch = () => {

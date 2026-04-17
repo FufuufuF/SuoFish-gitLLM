@@ -1,23 +1,10 @@
-import { Box, Typography } from "@mui/material";
 import { ThemeToggle } from "./theme-toggle";
 
 export function AppHeader() {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        px: 2,
-        py: 1,
-        borderBottom: 1,
-        borderColor: "divider",
-      }}
-    >
-      <Typography variant="h6" color="text.primary">
-        SuoFish
-      </Typography>
+    <div className="flex items-center justify-between border-b border-divider bg-bg-default/60 px-4 py-2 backdrop-blur-md">
+      <h6 className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-lg font-semibold text-transparent">SuoFish</h6>
       <ThemeToggle />
-    </Box>
+    </div>
   );
 }

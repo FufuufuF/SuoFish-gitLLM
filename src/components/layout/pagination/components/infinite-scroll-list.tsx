@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Box, type SxProps, type Theme } from "@mui/material";
+import { cn } from "@/lib/cn";
 import { usePaginationLoader } from "../hooks/use-pagination-loader";
 import type { LoadMoreResult } from "../types";
 import {
@@ -8,26 +8,15 @@ import {
   PaginationRetryState,
 } from "./common";
 
-// ===== 类型定义 =====
-
 export interface InfiniteScrollListProps<T> {
-  /** 外部传入的列表数据（来自 Store） */
   items: T[];
-  /** 加载更多回调，由 Hook 层提供。负责获取数据并写入 Store，仅返回分页元数据 */
   fetchMore: (cursor?: string) => Promise<LoadMoreResult>;
-  /** 渲染单个列表项 */
   renderItem: (item: T, index: number) => React.ReactNode;
-  /** 渲染加载中状态（初始加载 + 加载更多） */
   renderLoading?: () => React.ReactNode;
-  /** 渲染空状态 */
   renderEmpty?: () => React.ReactNode;
-  /** 渲染错误状态（点击重试） */
   renderError?: (retry: () => void, error: unknown) => React.ReactNode;
-  /** 容器自定义样式 */
-  sx?: SxProps<Theme>;
+  className?: string;
 }
-
-// ===== 组件实现 =====
 
 export function InfiniteScrollList<T>({
   items,
@@ -36,7 +25,7 @@ export function InfiniteScrollList<T>({
   renderLoading,
   renderEmpty,
   renderError,
-  sx,
+  className,
 }: InfiniteScrollListProps<T>) {
   const {
     hasMore,
@@ -48,28 +37,23 @@ export function InfiniteScrollList<T>({
     retry,
   } = usePaginationLoader({ fetchMore });
 
-  // ----- Refs -----
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const defaultError = (
     <PaginationRetryState
       isRetrying={isLoading}
-      onRetry={() => {
-        void retry();
-      }}
+      onRetry={() => { void retry(); }}
     />
   );
 
   const defaultLoadMore = <PaginationInlineLoading />;
   const defaultInitialLoading = <PaginationInitialLoading />;
 
-  // ----- 初始加载 -----
   useEffect(() => {
     void tryAutoLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ----- IntersectionObserver 触底检测 -----
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
@@ -87,62 +71,39 @@ export function InfiniteScrollList<T>({
     return () => observer.disconnect();
   }, [tryAutoLoad]);
 
-  // ----- 渲染 -----
-
-  // 初始加载状态
   if (isInitialLoading) {
     return (
-      <Box sx={{ height: "100%", ...sx }}>
+      <div className={cn("h-full", className)}>
         {renderLoading?.() ?? defaultInitialLoading}
-      </Box>
+      </div>
     );
   }
 
   if (isError && items.length === 0) {
     return (
-      <Box sx={{ height: "100%", ...sx }}>
-        {renderError
-          ? renderError(
-              () => {
-                void retry();
-              },
-              error,
-            )
-          : defaultError}
-      </Box>
+      <div className={cn("h-full", className)}>
+        {renderError ? renderError(() => { void retry(); }, error) : defaultError}
+      </div>
     );
   }
 
-  // 空状态
   if (items.length === 0 && !hasMore) {
-    return <Box sx={{ height: "100%", ...sx }}>{renderEmpty?.() ?? null}</Box>;
+    return <div className={cn("h-full", className)}>{renderEmpty?.() ?? null}</div>;
   }
 
   return (
-    <Box
-      sx={{
-        overflowY: "auto",
-        height: "100%",
-        ...sx,
-      }}
-    >
+    <div className={cn("h-full overflow-y-auto", className)}>
       {items.map((item, index) => renderItem(item, index))}
 
-      {/* 哨兵元素：当滚动到此处时触发加载更多 */}
       {hasMore && (
-        <Box ref={sentinelRef} sx={{ minHeight: 1 }}>
+        <div ref={sentinelRef} className="min-h-px">
           {isLoading && (renderLoading?.() ?? defaultLoadMore)}
           {isError &&
             (renderError
-              ? renderError(
-                  () => {
-                    void retry();
-                  },
-                  error,
-                )
+              ? renderError(() => { void retry(); }, error)
               : defaultError)}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

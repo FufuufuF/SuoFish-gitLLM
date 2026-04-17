@@ -1,18 +1,11 @@
 import { useEffect } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Drawer,
-  Divider,
-  Skeleton,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Loader2, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { SkeletonLine } from "@/components/skeletons/primitives/skeleton-base";
 import { useMergeStore } from "@/stores/merge-store";
 
-/** Drawer 固定宽度 */
 export const MERGE_DRAWER_WIDTH = 400;
 
 interface ThreadMergeDrawerProps {
@@ -32,7 +25,6 @@ export function ThreadMergeDrawer({
   const updateBriefContent = useMergeStore.getState().updateBriefContent;
   const reset = useMergeStore.getState().reset;
 
-  // 成功后自动关闭
   useEffect(() => {
     if (mergePhase === "success") {
       onClose();
@@ -53,95 +45,69 @@ export function ThreadMergeDrawer({
   };
 
   return (
-    <Drawer
-      anchor="right"
-      open={open}
-      onClose={handleClose}
-      variant="persistent"
-      sx={{
-        width: open ? MERGE_DRAWER_WIDTH : 0,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: MERGE_DRAWER_WIDTH,
-          position: "relative",
-          border: "none",
-          borderLeft: 1,
-          borderColor: "divider",
-        },
-      }}
+    <div
+      className={cn(
+        "flex shrink-0 flex-col overflow-hidden border-l border-divider bg-bg-paper transition-[width] duration-300",
+      )}
+      style={{ width: open ? MERGE_DRAWER_WIDTH : 0 }}
     >
       {/* Header */}
-      <Box sx={{ px: 3, py: 2 }}>
-        <Typography variant="h6">合并分支到父线程</Typography>
-      </Box>
-      <Divider />
+      <div className="px-6 py-4">
+        <h6 className="text-base font-medium">合并分支到父线程</h6>
+      </div>
+      <div className="h-px bg-divider" />
 
       {/* Content */}
-      <Box sx={{ flex: 1, overflow: "auto", px: 3, py: 2 }}>
-        {/* Phase: previewing（等待 LLM 返回） */}
+      <div className="flex-1 overflow-auto px-6 py-4">
         {isLoadingPreview && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-            <Typography variant="body2" color="text.secondary" mb={1}>
+          <div className="flex flex-col gap-3">
+            <p className="mb-2 text-sm text-text-secondary">
               正在生成学习简报，请稍候...
-            </Typography>
-            <Skeleton variant="rectangular" height={24} />
-            <Skeleton variant="rectangular" height={24} />
-            <Skeleton variant="rectangular" height={24} width="80%" />
-          </Box>
+            </p>
+            <SkeletonLine height={24} />
+            <SkeletonLine height={24} />
+            <SkeletonLine width="80%" height={24} />
+          </div>
         )}
 
-        {/* Phase: 有简报数据（可编辑） */}
         {!isLoadingPreview && !hasError && (
           <>
-            <Typography variant="body2" color="text.secondary" mb={2}>
+            <p className="mb-4 text-sm text-text-secondary">
               以下是本次分支的学习简报，你可以在确认前编辑内容：
-            </Typography>
-            <TextField
+            </p>
+            <Textarea
               value={briefContent}
               onChange={(e) => updateBriefContent(e.target.value)}
-              multiline
-              minRows={6}
-              maxRows={16}
-              fullWidth
-              variant="outlined"
               disabled={isConfirming}
               placeholder="学习简报内容..."
-              sx={{ fontFamily: "monospace" }}
+              rows={6}
+              className="font-mono"
             />
           </>
         )}
 
-        {/* Phase: error */}
         {hasError && (
-          <Alert severity="error" sx={{ mt: 1 }}>
+          <div className="mt-2 flex items-start gap-2 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-sm text-error">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
             {errorMessage ?? "操作失败，请重试"}
-          </Alert>
+          </div>
         )}
-      </Box>
+      </div>
 
-      {/* Footer Actions */}
-      <Divider />
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: 1,
-          px: 3,
-          py: 2,
-        }}
-      >
-        <Button onClick={handleClose} disabled={isConfirming}>
+      {/* Footer */}
+      <div className="h-px bg-divider" />
+      <div className="flex justify-end gap-2 px-6 py-4">
+        <Button variant="ghost" onClick={handleClose} disabled={isConfirming}>
           取消
         </Button>
         <Button
-          variant="contained"
           onClick={handleConfirm}
           disabled={isLoadingPreview || isConfirming || hasError}
-          startIcon={isConfirming ? <CircularProgress size={16} /> : undefined}
         >
+          {isConfirming && <Loader2 size={16} className="animate-spin" />}
           {isConfirming ? "合并中..." : "确认合并"}
         </Button>
-      </Box>
-    </Drawer>
+      </div>
+    </div>
   );
 }

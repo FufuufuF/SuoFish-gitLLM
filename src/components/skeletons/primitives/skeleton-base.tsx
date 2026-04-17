@@ -1,57 +1,48 @@
-import { Skeleton, type SkeletonProps } from "@mui/material";
+import { cn } from "@/lib/cn";
 
-/**
- * 单行文字骨架
- * @param width - 宽度，默认 "100%"
- * @param height - 高度，默认 16（约等于 body2 字号行高）
- */
+interface SkeletonProps {
+  width?: string | number;
+  height?: string | number;
+  className?: string;
+}
+
+const baseClass = "animate-pulse rounded-md bg-action-hover";
+
 export function SkeletonLine({
   width = "100%",
   height = 16,
-  ...rest
+  className,
 }: SkeletonProps) {
   return (
-    <Skeleton
-      variant="text"
-      animation="wave"
-      width={width}
-      height={height}
-      {...rest}
+    <div
+      className={cn(baseClass, "rounded", className)}
+      style={{ width, height }}
     />
   );
 }
 
-/**
- * 矩形色块骨架（用于头像、图标、卡片等）
- */
-export function SkeletonBlock({ width, height, sx, ...rest }: SkeletonProps) {
+export function SkeletonBlock({
+  width,
+  height,
+  className,
+}: SkeletonProps) {
   return (
-    <Skeleton
-      variant="rounded"
-      animation="wave"
-      width={width}
-      height={height}
-      sx={{ borderRadius: 1, ...sx }}
-      {...rest}
+    <div
+      className={cn(baseClass, className)}
+      style={{ width, height }}
     />
   );
 }
 
-/**
- * 圆形骨架（用于头像）
- */
 export function SkeletonCircle({
   width = 28,
   height = 28,
-  ...rest
+  className,
 }: SkeletonProps) {
   return (
-    <Skeleton
-      variant="circular"
-      animation="wave"
-      width={width}
-      height={height}
-      {...rest}
+    <div
+      className={cn(baseClass, "rounded-full", className)}
+      style={{ width, height }}
     />
   );
 }

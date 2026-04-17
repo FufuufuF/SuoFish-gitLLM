@@ -1,44 +1,26 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { MoreVertical, AlertCircle, MessageSquare, Trash2 } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { IconButton } from "@/components/ui/icon-button";
 import {
-  ListItemButton,
-  ListItemText,
-  IconButton,
-  Skeleton,
-  Box,
-  Menu,
-  MenuItem,
-} from "@mui/material";
-import {
-  MoreVert,
-  ErrorOutline,
-  ChatBubbleOutline,
-  DeleteOutline,
-} from "@mui/icons-material";
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import type { ChatSession } from "@/types";
 
-// ===== 类型定义 =====
-
 export interface ChatSessionItemProps {
-  /** 会话数据 */
   session: ChatSession;
-  /** 是否为当前激活的会话 */
   isActive: boolean;
-  /** 标题是否正在生成中（显示 Skeleton 占位） */
   isTitleGenerating: boolean;
-  /** 点击会话项 */
   onClick: (chatSessionId: string | number) => void;
-  /** 点击删除会话 */
   onDelete?: (chatSessionId: string | number) => void | Promise<void>;
 }
 
-// ===== 辅助函数 =====
-
-/** 获取会话的唯一标识（优先使用真实 id，fallback 到 tempId） */
 function getSessionKey(session: ChatSession): string | number {
   return session.id ?? session.tempId ?? "";
 }
-
-// ===== 组件实现 =====
 
 export function ChatSessionItem({
   session,
@@ -48,133 +30,87 @@ export function ChatSessionItem({
   onDelete,
 }: ChatSessionItemProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const sessionKey = getSessionKey(session);
   const isCreating = session.status === "creating";
   const isError = session.status === "error";
   const hasTitle = Boolean(session.title?.trim());
   const showSkeleton = isCreating && isTitleGenerating && !hasTitle;
-  const isMenuOpen = Boolean(menuAnchorEl);
   const canDelete = typeof session.id === "number" && session.id > 0 && !isCreating;
 
   const handleClick = () => {
     onClick(sessionKey);
   };
 
-  const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation(); // 阻止触发 ListItemButton 的 onClick
-    setMenuAnchorEl(e.currentTarget);
-  };
-
-  const handleCloseMenu = () => {
-    setMenuAnchorEl(null);
-  };
-
   const handleDeleteClick = () => {
-    handleCloseMenu();
+    setMenuOpen(false);
     onDelete?.(sessionKey);
   };
 
   return (
-    <ListItemButton
-      selected={isActive}
+    <button
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      sx={{
-        borderRadius: 2,
-        mx: 1,
-        mb: 0.5,
-        py: 1,
-        px: 1.5,
-        minHeight: 44,
-        transition: "background-color 0.15s ease",
-        "&.Mui-selected": {
-          bgcolor: "action.selected",
-          "&:hover": {
-            bgcolor: "action.selected",
-          },
-        },
-      }}
+      className={cn(
+        "mx-2 mb-1 flex min-h-[44px] w-[calc(100%-16px)] items-center rounded-md px-3 py-2 text-left",
+        "transition-all duration-150",
+        isActive
+          ? "bg-action-selected shadow-glow-primary/30"
+          : "hover:bg-action-hover hover:translate-x-0.5",
+      )}
     >
-      {/* 会话图标 */}
-      <ChatBubbleOutline
-        sx={{
-          fontSize: 18,
-          color: isError ? "error.main" : "text.secondary",
-          mr: 1.5,
-          flexShrink: 0,
-        }}
+      <MessageSquare
+        size={18}
+        className={cn(
+          "mr-3 shrink-0",
+          isError ? "text-error" : "text-text-secondary",
+        )}
       />
 
-      {/* 标题区域 */}
       {showSkeleton ? (
-        <Skeleton variant="text" width="70%" sx={{ fontSize: "1.4rem" }} />
+        <div className="h-5 w-[70%] animate-pulse rounded bg-action-hover" />
       ) : (
-        <ListItemText
-          primary={session.title || "新对话"}
-          primaryTypographyProps={{
-            variant: "body2",
-            noWrap: true,
-            sx: {
-              color: isError ? "error.main" : "text.primary",
-              fontWeight: isActive ? 600 : 400,
-              fontSize: "1.2rem",
-            },
-          }}
-        />
+        <span
+          className={cn(
+            "flex-1 truncate text-sm",
+            isError ? "text-error" : "text-text-primary",
+            isActive ? "font-semibold" : "font-normal",
+          )}
+        >
+          {session.title || "新对话"}
+        </span>
       )}
 
-      {/* 右侧区域：错误图标 / 操作菜单 */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          ml: "auto",
-          flexShrink: 0,
-        }}
-      >
+      <div className="ml-auto flex shrink-0 items-center">
         {isError && (
-          <ErrorOutline
-            sx={{
-              fontSize: 16,
-              color: "error.main",
-              mr: 0.5,
-            }}
-          />
+          <AlertCircle size={16} className="mr-1 text-error" />
         )}
 
-        {/* 操作菜单按钮 - hover 或菜单展开时显示 */}
-        {(isHovered || isMenuOpen) && !showSkeleton && (
-          <IconButton
-            size="small"
-            onClick={handleMenuClick}
-            sx={{
-              color: "text.secondary",
-              p: 0.5,
-              "&:hover": {
-                bgcolor: "action.hover",
-              },
-            }}
-          >
-            <MoreVert sx={{ fontSize: 18 }} />
-          </IconButton>
+        {(isHovered || menuOpen) && !showSkeleton && (
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <IconButton
+                size="sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical />
+              </IconButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={handleDeleteClick}
+                disabled={!canDelete || !onDelete}
+                className="text-error focus:text-error"
+              >
+                <Trash2 size={16} />
+                删除会话
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-      </Box>
-
-      <Menu
-        anchorEl={menuAnchorEl}
-        open={isMenuOpen}
-        onClose={handleCloseMenu}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <MenuItem onClick={handleDeleteClick} disabled={!canDelete || !onDelete}>
-          <DeleteOutline sx={{ fontSize: 18, mr: 1 }} />
-          删除会话
-        </MenuItem>
-      </Menu>
-    </ListItemButton>
+      </div>
+    </button>
   );
 }
