@@ -1,28 +1,34 @@
 import {
   createContext,
   useContext,
-  useMemo,
+  useEffect,
   useState,
   type ReactNode,
 } from "react";
-import {
-  ThemeProvider as MuiThemeProvider,
-  CssBaseline,
-  type PaletteMode,
-} from "@mui/material";
-import { createAppTheme } from "./theme";
+
+export type ThemeMode = "dark" | "light";
 
 interface ThemeContextType {
-  mode: PaletteMode;
+  mode: ThemeMode;
   toggleMode: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function applyThemeClass(mode: ThemeMode) {
+  const root = document.documentElement;
+  root.classList.remove("dark", "light");
+  root.classList.add(mode);
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<PaletteMode>(() => {
-    return (localStorage.getItem("theme-mode") as PaletteMode) || "dark";
+  const [mode, setMode] = useState<ThemeMode>(() => {
+    return (localStorage.getItem("theme-mode") as ThemeMode) || "dark";
   });
+
+  useEffect(() => {
+    applyThemeClass(mode);
+  }, [mode]);
 
   const toggleMode = () => {
     setMode((prev) => {
@@ -32,14 +38,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const theme = useMemo(() => createAppTheme(mode), [mode]);
-
   return (
     <ThemeContext.Provider value={{ mode, toggleMode }}>
-      <MuiThemeProvider theme={theme}>
-        <CssBaseline />
-        {children}
-      </MuiThemeProvider>
+      {children}
     </ThemeContext.Provider>
   );
 }

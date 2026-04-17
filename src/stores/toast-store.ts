@@ -1,47 +1,32 @@
-import type { AlertColor } from "@mui/material/Alert";
 import { create } from "zustand";
+import { toast } from "sonner";
 
-interface ToastState {
-  id: number;
-  open: boolean;
-  message: string;
-  severity: AlertColor;
-}
+type ToastSeverity = "success" | "error" | "warning" | "info";
 
 interface ToastStore {
-  toast: ToastState | null;
-  showToast: (message: string, severity?: AlertColor) => void;
+  showToast: (message: string, severity?: ToastSeverity) => void;
   showError: (message: string) => void;
-  closeToast: () => void;
 }
 
-let toastId = 0;
+export const useToastStore = create<ToastStore>(() => ({
+  showToast: (message, severity = "info") => {
+    switch (severity) {
+      case "success":
+        toast.success(message);
+        break;
+      case "error":
+        toast.error(message);
+        break;
+      case "warning":
+        toast.warning(message);
+        break;
+      case "info":
+        toast.info(message);
+        break;
+    }
+  },
 
-export const useToastStore = create<ToastStore>((set) => ({
-  toast: null,
-
-  showToast: (message, severity = "info") =>
-    set({
-      toast: {
-        id: ++toastId,
-        open: true,
-        message,
-        severity,
-      },
-    }),
-
-  showError: (message) =>
-    set({
-      toast: {
-        id: ++toastId,
-        open: true,
-        message,
-        severity: "error",
-      },
-    }),
-
-  closeToast: () =>
-    set((state) => ({
-      toast: state.toast ? { ...state.toast, open: false } : null,
-    })),
+  showError: (message) => {
+    toast.error(message);
+  },
 }));

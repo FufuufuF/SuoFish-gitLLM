@@ -1,29 +1,19 @@
-import { Alert, Snackbar } from "@mui/material";
-import { useToastStore } from "@/stores/toast-store";
+import { Toaster } from "sonner";
+import { useThemeMode } from "@/theme";
 
 export function GlobalToast() {
-  const toast = useToastStore((s) => s.toast);
-  const closeToast = useToastStore((s) => s.closeToast);
+  const { mode } = useThemeMode();
 
   return (
-    <Snackbar
-      key={toast?.id ?? 0}
-      open={toast?.open ?? false}
-      autoHideDuration={4500}
-      anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      onClose={(_, reason) => {
-        if (reason === "clickaway") return;
-        closeToast();
+    <Toaster
+      theme={mode}
+      position="top-center"
+      richColors
+      toastOptions={{
+        style: {
+          fontFamily: "var(--font-sans)",
+        },
       }}
-    >
-      <Alert
-        severity={toast?.severity ?? "info"}
-        onClose={closeToast}
-        variant="filled"
-        sx={{ width: "100%" }}
-      >
-        {toast?.message ?? ""}
-      </Alert>
-    </Snackbar>
+    />
   );
 }
