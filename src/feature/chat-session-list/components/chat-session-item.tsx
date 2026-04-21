@@ -49,12 +49,20 @@ export function ChatSessionItem({
   };
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "mx-2 mb-1 flex min-h-[44px] w-[calc(100%-16px)] items-center rounded-md px-3 py-2 text-left",
+        "mx-2 mb-1 flex min-h-[44px] w-[calc(100%-16px)] cursor-pointer items-center rounded-md px-3 py-2 text-left",
         "transition-all duration-150",
         isActive
           ? "bg-action-selected shadow-glow-primary/30"
@@ -111,6 +119,6 @@ export function ChatSessionItem({
           </DropdownMenu>
         )}
       </div>
-    </button>
+    </div>
   );
 }
