@@ -10,6 +10,7 @@ import type { ChatSession } from "@/types";
 export function useChatSession() {
   const {
     setSessions,
+    appendSessions,
     addSession,
     updateSessionStatus,
     replaceSessionId,
@@ -42,15 +43,18 @@ export function useChatSession() {
     async (cursor?: string) => {
       const response = await getChatSessionList({ cursor, limit: 20 });
       const mappedSessions = response.items.map(mapApiSessionToBusinessSession);
-      // 同步更新 Store（可选，取决于是否需要全局访问）
-      setSessions(mappedSessions);
+      if (cursor) {
+        appendSessions(mappedSessions);
+      } else {
+        setSessions(mappedSessions);
+      }
       return {
         items: mappedSessions,
         nextCursor: response.next_cursor,
         hasMore: response.has_more,
       };
     },
-    [mapApiSessionToBusinessSession, setSessions],
+    [mapApiSessionToBusinessSession, setSessions, appendSessions],
   );
 
   // ===== 进入新会话模式（点击「创建新会话」时调用） =====

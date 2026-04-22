@@ -11,6 +11,9 @@ export interface ChatSessionStore {
   /** 设置整个会话列表（用于初始加载） */
   setSessions: (sessions: ChatSession[]) => void;
 
+  /** 追加会话到列表尾部（用于分页加载后续页） */
+  appendSessions: (sessions: ChatSession[]) => void;
+
   /** 添加新会话（乐观更新用） */
   addSession: (session: ChatSession) => void;
 
@@ -42,6 +45,11 @@ export const useChatSessionStore = create<ChatSessionStore>((set) => ({
   isTitleGenerating: false,
 
   setSessions: (sessions) => set({ sessions }),
+
+  appendSessions: (newSessions) =>
+    set((state) => ({
+      sessions: [...state.sessions, ...newSessions],
+    })),
 
   addSession: (session) =>
     set((state) => ({
