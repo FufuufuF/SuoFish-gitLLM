@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { MoreVertical, AlertCircle, MessageSquare, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { IconButton } from "@/components/ui/icon-button";

@@ -31,7 +31,7 @@ export function AppSidebar() {
             <ChatSessionList />
           </TabsContent>
 
-          <TabsContent value="branches" forceMount={false}>
+          <TabsContent value="branches">
             {typeof activeSessionId === "number" ? (
               <div className="flex-1 overflow-auto">
                 <ThreadTreePanel chatSessionId={activeSessionId} />

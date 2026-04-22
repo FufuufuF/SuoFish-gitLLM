@@ -1,4 +1,4 @@
-import { memo, useState, useMemo } from "react";
+import { memo, useState } from "react";
 import { Copy, Check, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { IconButton } from "@/components/ui/icon-button";
