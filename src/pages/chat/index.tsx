@@ -2,10 +2,9 @@ import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { ChatInput, MessageItem, ThreadForkDivider } from "./components";
 import {
-  UpwardInfiniteList,
-  type UpwardInfiniteListHandle,
-} from "@/components/layout/pagination";
-import { VirtualList, type VirtualListHandle } from "@/components/layout/virtual-list";
+  InfiniteVirtualList,
+  type InfiniteVirtualListHandle,
+} from "@/components/layout/infinite-virtual-list";
 import { ThreadForkDialog } from "@/components/common/thread-fork-dialog";
 import { ThreadMergeDrawer } from "@/feature/thread-branch-graph/components/thread-merge-drawer";
 import { useMessage } from "../../hooks/use-message";
@@ -68,9 +67,7 @@ export function ChatPage() {
     cancelStreaming,
     isStreaming,
   } = useMessage(activeThreadId);
-  const listRef = useRef<UpwardInfiniteListHandle>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const virtualListRef = useRef<VirtualListHandle>(null);
+  const listRef = useRef<InfiniteVirtualListHandle>(null);
   const isAnyStreaming = isStreaming || isFirstMessageStreaming;
 
   const handleStopGeneration = () => {
@@ -133,41 +130,35 @@ export function ChatPage() {
   return (
     <div className="flex h-full w-full flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col items-center p-8 transition-all duration-300 ease-in-out">
-        <UpwardInfiniteList
+        <InfiniteVirtualList
           ref={listRef}
-          containerRef={scrollRef}
           key={activeThreadId ?? "new"}
+          items={messages}
+          getItemKey={(msg: Message) => msg.id}
           fetchMore={fetchMoreMessages}
+          estimateSize={120}
+          overscan={5}
+          direction="up"
+          initialAnchor="end"
           isEmpty={messages.length === 0}
-          manageScroll={false}
           className="min-h-0 w-full flex-1"
-        >
-          <VirtualList
-            ref={virtualListRef}
-            scrollContainerRef={scrollRef}
-            items={messages}
-            getItemKey={(msg: Message) => msg.id}
-            estimatedItemHeight={120}
-            overscan={5}
-            initialAnchor="end"
-            className="py-4"
-            renderItem={(message: Message, index: number) => {
-              const isAncestor =
-                isAllAncestor || (firstCurrentIdx > 0 && index < firstCurrentIdx);
-              return (
-                <>
-                  {showDivider && !isAllAncestor && index === firstCurrentIdx && (
-                    <ThreadForkDivider parentThreadTitle={parentThreadTitle} />
-                  )}
-                  <MessageItem message={message} isAncestor={isAncestor} />
-                  {showDivider && isAllAncestor && index === messages.length - 1 && (
-                    <ThreadForkDivider parentThreadTitle={parentThreadTitle} />
-                  )}
-                </>
-              );
-            }}
-          />
-        </UpwardInfiniteList>
+          listClassName="py-4"
+          renderItem={(message: Message, index: number) => {
+            const isAncestor =
+              isAllAncestor || (firstCurrentIdx > 0 && index < firstCurrentIdx);
+            return (
+              <>
+                {showDivider && !isAllAncestor && index === firstCurrentIdx && (
+                  <ThreadForkDivider parentThreadTitle={parentThreadTitle} />
+                )}
+                <MessageItem message={message} isAncestor={isAncestor} />
+                {showDivider && isAllAncestor && index === messages.length - 1 && (
+                  <ThreadForkDivider parentThreadTitle={parentThreadTitle} />
+                )}
+              </>
+            );
+          }}
+        />
         <div className="w-4/5 shrink-0">
           <ChatInput
             onSend={handleSend}
